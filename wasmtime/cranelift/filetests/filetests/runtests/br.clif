@@ -1,0 +1,191 @@
+test interpret
+test run
+target aarch64
+target s390x
+target x86_64
+
+function %jump() -> b1 {
+block0:
+    jump block2
+
+block1:
+    v0 = bconst.b1 false
+    return v0
+
+block2:
+    v1 = bconst.b1 true
+    return v1
+}
+; run: %jump() == true
+
+
+function %brz_i64(i64) -> b1 {
+block0(v0: i64):
+    brz v0, block1
+    jump block2
+
+block1:
+    v1 = bconst.b1 true
+    return v1
+
+block2:
+    v2 = bconst.b1 false
+    return v2
+}
+; run: %brz_i64(0) == true
+; run: %brz_i64(1) == false
+; run: %brz_i64(-1) == false
+
+function %brz_i32(i32) -> b1 {
+block0(v0: i32):
+    brz v0, block1
+    jump block2
+
+block1:
+    v1 = bconst.b1 true
+    return v1
+
+block2:
+    v2 = bconst.b1 false
+    return v2
+}
+; run: %brz_i32(0) == true
+; run: %brz_i32(1) == false
+; run: %brz_i32(-1) == false
+
+function %brz_i16(i16) -> b1 {
+block0(v0: i16):
+    brz v0, block1
+    jump block2
+
+block1:
+    v1 = bconst.b1 true
+    return v1
+
+block2:
+    v2 = bconst.b1 false
+    return v2
+}
+; run: %brz_i16(0) == true
+; run: %brz_i16(1) == false
+; run: %brz_i16(-1) == false
+
+function %brz_i8(i8) -> b1 {
+block0(v0: i8):
+    brz v0, block1
+    jump block2
+
+block1:
+    v1 = bconst.b1 true
+    return v1
+
+block2:
+    v2 = bconst.b1 false
+    return v2
+}
+; run: %brz_i8(0) == true
+; run: %brz_i8(1) == false
+; run: %brz_i8(-1) == false
+
+
+function %brz_b1(b1) -> b1 {
+block0(v1: b1):
+    brz v1, block1
+    jump block2
+
+block1:
+    v2 = bconst.b1 true
+    return v2
+
+block2:
+    v3 = bconst.b1 false
+    return v3
+}
+; run: %brz_b1(true) == false
+; run: %brz_b1(false) == true
+
+
+function %brnz_i64(i64) -> b1 {
+block0(v0: i64):
+    brnz v0, block1
+    jump block2
+
+block1:
+    v1 = bconst.b1 true
+    return v1
+
+block2:
+    v2 = bconst.b1 false
+    return v2
+}
+; run: %brnz_i64(0) == false
+; run: %brnz_i64(1) == true
+; run: %brnz_i64(-1) == true
+
+function %brnz_i32(i32) -> b1 {
+block0(v0: i32):
+    brnz v0, block1
+    jump block2
+
+block1:
+    v1 = bconst.b1 true
+    return v1
+
+block2:
+    v2 = bconst.b1 false
+    return v2
+}
+; run: %brnz_i32(0) == false
+; run: %brnz_i32(1) == true
+; run: %brnz_i32(-1) == true
+
+function %brnz_i16(i16) -> b1 {
+block0(v0: i16):
+    brnz v0, block1
+    jump block2
+
+block1:
+    v1 = bconst.b1 true
+    return v1
+
+block2:
+    v2 = bconst.b1 false
+    return v2
+}
+; run: %brnz_i16(0) == false
+; run: %brnz_i16(1) == true
+; run: %brnz_i16(-1) == true
+
+function %brnz_i8(i8) -> b1 {
+block0(v0: i8):
+    brnz v0, block1
+    jump block2
+
+block1:
+    v1 = bconst.b1 true
+    return v1
+
+block2:
+    v2 = bconst.b1 false
+    return v2
+}
+; run: %brnz_i8(0) == false
+; run: %brnz_i8(1) == true
+; run: %brnz_i8(-1) == true
+
+
+function %brnz_b1(b1) -> b1 {
+block0(v1: b1):
+    brnz v1, block1
+    jump block2
+
+block1:
+    v2 = bconst.b1 true
+    return v2
+
+block2:
+    v3 = bconst.b1 false
+    return v3
+}
+; run: %brnz_b1(true) == true
+; run: %brnz_b1(false) == false

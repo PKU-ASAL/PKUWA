@@ -1,0 +1,42 @@
+[package]
+name = "cranelift-jit"
+version = "0.89.0"
+authors = ["The Cranelift Project Developers"]
+description = "A JIT library backed by Cranelift"
+repository = "https://github.com/bytecodealliance/wasmtime"
+documentation = "https://docs.rs/cranelift-jit"
+license = "Apache-2.0 WITH LLVM-exception"
+readme = "README.md"
+edition = "2021"
+
+[dependencies]
+cranelift-module = { path = "../module", version = "0.89.0" }
+cranelift-native = { path = "../native", version = "0.89.0" }
+cranelift-codegen = { path = "../codegen", version = "0.89.0", default-features = false, features = ["std"] }
+cranelift-entity = { path = "../entity", version = "0.89.0" }
+anyhow = "1.0"
+region = "2.2.0"
+libc = { version = "0.2.42" }
+target-lexicon = "0.12"
+memmap2 = { version = "0.2.1", optional = true }
+log = { version = "0.4.6", default-features = false }
+
+[target.'cfg(windows)'.dependencies.windows-sys]
+version = "0.36.0"
+features = [
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+]
+
+[features]
+selinux-fix = ['memmap2']
+default = []
+
+[dev-dependencies]
+cranelift = { path = "../umbrella", version = "0.89.0" }
+cranelift-frontend = { path = "../frontend", version = "0.89.0" }
+cranelift-entity = { path = "../entity", version = "0.89.0" }
+
+[badges]
+maintenance = { status = "experimental" }

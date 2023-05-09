@@ -1,0 +1,402 @@
+test compile precise-output
+set unwind_info=false
+target aarch64
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ROR, variable
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+function %i128_rotr(i128, i128) -> i128 {
+block0(v0: i128, v1: i128):
+  v2 = rotr.i128 v0, v1
+  return v2
+}
+
+; block0:
+;   orr x7, xzr, #128
+;   sub x9, x7, x2
+;   lsr x11, x0, x2
+;   lsr x13, x1, x2
+;   orn w15, wzr, w2
+;   lsl x3, x1, #1
+;   lsl x3, x3, x15
+;   orr x5, x11, x3
+;   ands xzr, x2, #64
+;   csel x8, x13, x5, ne
+;   csel x10, xzr, x13, ne
+;   lsl x12, x0, x9
+;   lsl x14, x1, x9
+;   orn w1, wzr, w9
+;   lsr x2, x0, #1
+;   lsr x4, x2, x1
+;   orr x6, x14, x4
+;   ands xzr, x9, #64
+;   csel x9, xzr, x12, ne
+;   csel x11, x12, x6, ne
+;   orr x1, x10, x11
+;   orr x0, x8, x9
+;   ret
+
+function %f0(i64, i64) -> i64 {
+block0(v0: i64, v1: i64):
+  v2 = rotr.i64 v0, v1
+  return v2
+}
+
+; block0:
+;   ror x0, x0, x1
+;   ret
+
+function %f1(i32, i32) -> i32 {
+block0(v0: i32, v1: i32):
+  v2 = rotr.i32 v0, v1
+  return v2
+}
+
+; block0:
+;   ror w0, w0, w1
+;   ret
+
+function %f2(i16, i16) -> i16 {
+block0(v0: i16, v1: i16):
+  v2 = rotr.i16 v0, v1
+  return v2
+}
+
+; block0:
+;   uxth w4, w0
+;   and w6, w1, #15
+;   sub w8, w6, #16
+;   sub w10, wzr, w8
+;   lsr w12, w4, w6
+;   lsl w14, w4, w10
+;   orr w0, w14, w12
+;   ret
+
+function %f3(i8, i8) -> i8 {
+block0(v0: i8, v1: i8):
+  v2 = rotr.i8 v0, v1
+  return v2
+}
+
+; block0:
+;   uxtb w4, w0
+;   and w6, w1, #7
+;   sub w8, w6, #8
+;   sub w10, wzr, w8
+;   lsr w12, w4, w6
+;   lsl w14, w4, w10
+;   orr w0, w14, w12
+;   ret
+
+function %i128_rotl(i128, i128) -> i128 {
+block0(v0: i128, v1: i128):
+  v2 = rotl.i128 v0, v1
+  return v2
+}
+
+; block0:
+;   orr x7, xzr, #128
+;   sub x9, x7, x2
+;   lsl x11, x0, x2
+;   lsl x13, x1, x2
+;   orn w15, wzr, w2
+;   lsr x3, x0, #1
+;   lsr x3, x3, x15
+;   orr x5, x13, x3
+;   ands xzr, x2, #64
+;   csel x8, xzr, x11, ne
+;   csel x10, x11, x5, ne
+;   lsr x12, x0, x9
+;   lsr x14, x1, x9
+;   orn w0, wzr, w9
+;   lsl x2, x1, #1
+;   lsl x4, x2, x0
+;   orr x6, x12, x4
+;   ands xzr, x9, #64
+;   csel x9, x14, x6, ne
+;   csel x11, xzr, x14, ne
+;   orr x0, x8, x9
+;   orr x1, x10, x11
+;   ret
+
+function %f4(i64, i64) -> i64 {
+block0(v0: i64, v1: i64):
+  v2 = rotl.i64 v0, v1
+  return v2
+}
+
+; block0:
+;   sub x4, xzr, x1
+;   ror x0, x0, x4
+;   ret
+
+function %f5(i32, i32) -> i32 {
+block0(v0: i32, v1: i32):
+  v2 = rotl.i32 v0, v1
+  return v2
+}
+
+; block0:
+;   sub w4, wzr, w1
+;   ror w0, w0, w4
+;   ret
+
+function %f6(i16, i16) -> i16 {
+block0(v0: i16, v1: i16):
+  v2 = rotl.i16 v0, v1
+  return v2
+}
+
+; block0:
+;   sub w4, wzr, w1
+;   uxth w6, w0
+;   and w8, w4, #15
+;   sub w10, w8, #16
+;   sub w12, wzr, w10
+;   lsr w14, w6, w8
+;   lsl w0, w6, w12
+;   orr w0, w0, w14
+;   ret
+
+function %f7(i8, i8) -> i8 {
+block0(v0: i8, v1: i8):
+  v2 = rotl.i8 v0, v1
+  return v2
+}
+
+; block0:
+;   sub w4, wzr, w1
+;   uxtb w6, w0
+;   and w8, w4, #7
+;   sub w10, w8, #8
+;   sub w12, wzr, w10
+;   lsr w14, w6, w8
+;   lsl w0, w6, w12
+;   orr w0, w0, w14
+;   ret
+
+function %f8(i64, i64) -> i64 {
+block0(v0: i64, v1: i64):
+  v2 = ushr.i64 v0, v1
+  return v2
+}
+
+; block0:
+;   lsr x0, x0, x1
+;   ret
+
+function %f9(i32, i32) -> i32 {
+block0(v0: i32, v1: i32):
+  v2 = ushr.i32 v0, v1
+  return v2
+}
+
+; block0:
+;   lsr w0, w0, w1
+;   ret
+
+function %f10(i16, i16) -> i16 {
+block0(v0: i16, v1: i16):
+  v2 = ushr.i16 v0, v1
+  return v2
+}
+
+; block0:
+;   uxth w4, w0
+;   and w6, w1, #15
+;   lsr w0, w4, w6
+;   ret
+
+function %f11(i8, i8) -> i8 {
+block0(v0: i8, v1: i8):
+  v2 = ushr.i8 v0, v1
+  return v2
+}
+
+; block0:
+;   uxtb w4, w0
+;   and w6, w1, #7
+;   lsr w0, w4, w6
+;   ret
+
+function %f12(i64, i64) -> i64 {
+block0(v0: i64, v1: i64):
+  v2 = ishl.i64 v0, v1
+  return v2
+}
+
+; block0:
+;   lsl x0, x0, x1
+;   ret
+
+function %f13(i32, i32) -> i32 {
+block0(v0: i32, v1: i32):
+  v2 = ishl.i32 v0, v1
+  return v2
+}
+
+; block0:
+;   lsl w0, w0, w1
+;   ret
+
+function %f14(i16, i16) -> i16 {
+block0(v0: i16, v1: i16):
+  v2 = ishl.i16 v0, v1
+  return v2
+}
+
+; block0:
+;   and w4, w1, #15
+;   lsl w0, w0, w4
+;   ret
+
+function %f15(i8, i8) -> i8 {
+block0(v0: i8, v1: i8):
+  v2 = ishl.i8 v0, v1
+  return v2
+}
+
+; block0:
+;   and w4, w1, #7
+;   lsl w0, w0, w4
+;   ret
+
+function %f16(i64, i64) -> i64 {
+block0(v0: i64, v1: i64):
+  v2 = sshr.i64 v0, v1
+  return v2
+}
+
+; block0:
+;   asr x0, x0, x1
+;   ret
+
+function %f17(i32, i32) -> i32 {
+block0(v0: i32, v1: i32):
+  v2 = sshr.i32 v0, v1
+  return v2
+}
+
+; block0:
+;   asr w0, w0, w1
+;   ret
+
+function %f18(i16, i16) -> i16 {
+block0(v0: i16, v1: i16):
+  v2 = sshr.i16 v0, v1
+  return v2
+}
+
+; block0:
+;   sxth w4, w0
+;   and w6, w1, #15
+;   asr w0, w4, w6
+;   ret
+
+function %f19(i8, i8) -> i8 {
+block0(v0: i8, v1: i8):
+  v2 = sshr.i8 v0, v1
+  return v2
+}
+
+; block0:
+;   sxtb w4, w0
+;   and w6, w1, #7
+;   asr w0, w4, w6
+;   ret
+
+function %f20(i64) -> i64 {
+block0(v0: i64):
+  v1 = iconst.i32 17
+  v2 = rotr.i64 v0, v1
+  return v2
+}
+
+; block0:
+;   ror x0, x0, #17
+;   ret
+
+function %f21(i64) -> i64 {
+block0(v0: i64):
+  v1 = iconst.i32 17
+  v2 = rotl.i64 v0, v1
+  return v2
+}
+
+; block0:
+;   ror x0, x0, #47
+;   ret
+
+function %f22(i32) -> i32 {
+block0(v0: i32):
+  v1 = iconst.i32 17
+  v2 = rotl.i32 v0, v1
+  return v2
+}
+
+; block0:
+;   ror w0, w0, #15
+;   ret
+
+function %f23(i16) -> i16 {
+block0(v0: i16):
+  v1 = iconst.i32 10
+  v2 = rotl.i16 v0, v1
+  return v2
+}
+
+; block0:
+;   uxth w3, w0
+;   lsr w5, w3, #6
+;   lsl w7, w3, #10
+;   orr w0, w7, w5
+;   ret
+
+function %f24(i8) -> i8 {
+block0(v0: i8):
+  v1 = iconst.i32 3
+  v2 = rotl.i8 v0, v1
+  return v2
+}
+
+; block0:
+;   uxtb w3, w0
+;   lsr w5, w3, #5
+;   lsl w7, w3, #3
+;   orr w0, w7, w5
+;   ret
+
+function %f25(i64) -> i64 {
+block0(v0: i64):
+  v1 = iconst.i32 17
+  v2 = ushr.i64 v0, v1
+  return v2
+}
+
+; block0:
+;   lsr x0, x0, #17
+;   ret
+
+function %f26(i64) -> i64 {
+block0(v0: i64):
+  v1 = iconst.i32 17
+  v2 = sshr.i64 v0, v1
+  return v2
+}
+
+; block0:
+;   asr x0, x0, #17
+;   ret
+
+function %f27(i64) -> i64 {
+block0(v0: i64):
+  v1 = iconst.i32 17
+  v2 = ishl.i64 v0, v1
+  return v2
+}
+
+; block0:
+;   lsl x0, x0, #17
+;   ret
+

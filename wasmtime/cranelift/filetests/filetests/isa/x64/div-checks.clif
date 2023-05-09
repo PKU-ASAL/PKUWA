@@ -1,0 +1,85 @@
+test compile precise-output
+set avoid_div_traps=false
+target x86_64
+
+;; We should get the checked-div/rem sequence (`srem` pseudoinst below) even
+;; when `avoid_div_traps` above is false (i.e. even when the host is normally
+;; willing to accept SIGFPEs as Wasm traps). The machine will SIGFPE in some
+;; cases when `srem` is valid (specifically -INT_MIN % -1).
+
+function %i8(i8, i8) -> i8 {
+block0(v0: i8, v1: i8):
+  v2 = srem.i8 v0, v1
+
+  return v2
+}
+
+;   pushq   %rbp
+;   movq    %rsp, %rbp
+; block0:
+;   xorl    %r10d, %r10d, %r10d
+;   movq    %rdi, %rax
+;   movq    %r10, %rdx
+;   srem_seq %al, %dl, %sil, %al, %dl, tmp=(none)
+;   shrq    $8, %rax, %rax
+;   movq    %rbp, %rsp
+;   popq    %rbp
+;   ret
+
+function %i16(i16, i16) -> i16 {
+block0(v0: i16, v1: i16):
+  v2 = srem.i16 v0, v1
+
+  return v2
+}
+
+;   pushq   %rbp
+;   movq    %rsp, %rbp
+; block0:
+;   xorl    %r10d, %r10d, %r10d
+;   movq    %rdi, %rax
+;   movq    %r10, %rdx
+;   srem_seq %ax, %dx, %si, %ax, %dx, tmp=(none)
+;   movq    %rdx, %rax
+;   movq    %rbp, %rsp
+;   popq    %rbp
+;   ret
+
+function %i32(i32, i32) -> i32 {
+block0(v0: i32, v1: i32):
+  v2 = srem.i32 v0, v1
+
+  return v2
+}
+
+;   pushq   %rbp
+;   movq    %rsp, %rbp
+; block0:
+;   xorl    %r10d, %r10d, %r10d
+;   movq    %rdi, %rax
+;   movq    %r10, %rdx
+;   srem_seq %eax, %edx, %esi, %eax, %edx, tmp=(none)
+;   movq    %rdx, %rax
+;   movq    %rbp, %rsp
+;   popq    %rbp
+;   ret
+
+function %i64(i64, i64) -> i64 {
+block0(v0: i64, v1: i64):
+  v2 = srem.i64 v0, v1
+
+  return v2
+}
+
+;   pushq   %rbp
+;   movq    %rsp, %rbp
+; block0:
+;   xorl    %r10d, %r10d, %r10d
+;   movq    %rdi, %rax
+;   movq    %r10, %rdx
+;   srem_seq %rax, %rdx, %rsi, %rax, %rdx, tmp=(none)
+;   movq    %rdx, %rax
+;   movq    %rbp, %rsp
+;   popq    %rbp
+;   ret
+

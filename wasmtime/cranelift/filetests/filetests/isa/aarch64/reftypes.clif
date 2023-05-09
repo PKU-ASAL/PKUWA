@@ -1,0 +1,97 @@
+test compile precise-output
+set unwind_info=false
+target aarch64
+
+function %f0(r64) -> r64 {
+block0(v0: r64):
+  return v0
+}
+
+; block0:
+;   ret
+
+function %f1(r64) -> b1 {
+block0(v0: r64):
+  v1 = is_null v0
+  return v1
+}
+
+; block0:
+;   subs xzr, x0, #0
+;   cset x0, eq
+;   ret
+
+function %f2(r64) -> b1 {
+block0(v0: r64):
+  v1 = is_invalid v0
+  return v1
+}
+
+; block0:
+;   adds xzr, x0, #1
+;   cset x0, eq
+;   ret
+
+function %f3() -> r64 {
+block0:
+  v0 = null.r64
+  return v0
+}
+
+; block0:
+;   movz x0, #0
+;   ret
+
+function %f4(r64, r64) -> r64, r64, r64 {
+    fn0 = %f(r64) -> b1
+    ss0 = explicit_slot 8
+
+block0(v0: r64, v1: r64):
+    v2 = call fn0(v0)
+    stack_store.r64 v0, ss0
+    brz v2, block1(v1, v0)
+    jump block2(v0, v1)
+
+block1(v3: r64, v4: r64):
+    jump block3(v3, v4)
+
+block2(v5: r64, v6: r64):
+    jump block3(v5, v6)
+
+block3(v7: r64, v8: r64):
+    v9 = stack_load.r64 ss0
+    return v7, v8, v9
+}
+
+;   stp fp, lr, [sp, #-16]!
+;   mov fp, sp
+;   sub sp, sp, #32
+; block0:
+;   str x1, [sp, #16]
+;   str x0, [sp, #8]
+;   ldr x1, 8 ; b 12 ; data TestCase(%f) + 0
+;   blr x1
+;   mov x3, sp
+;   ldr x9, [sp, #8]
+;   str x9, [x3]
+;   and w4, w0, #1
+;   cbz x4, label1 ; b label3
+; block1:
+;   b label2
+; block2:
+;   mov x1, x9
+;   ldr x0, [sp, #16]
+;   b label5
+; block3:
+;   b label4
+; block4:
+;   mov x0, x9
+;   ldr x1, [sp, #16]
+;   b label5
+; block5:
+;   mov x5, sp
+;   ldr x2, [x5]
+;   add sp, sp, #32
+;   ldp fp, lr, [sp], #16
+;   ret
+
