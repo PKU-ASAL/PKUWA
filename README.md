@@ -1,6 +1,6 @@
 ## PKUWA
 ---
-PKUWA(Protection Key in Userspace for WebAssembly) is a framework to provide linear memory protection for WebAssembly.
+PKUWA(Protection Key in Userspace for WebAssembly) is a framework to provide linear memory protection for WebAssembly. The core part of PKUWA is the Domain Isolated Linear Memory (DILM) model that divides the linear memory into different domains and allows each WebAssembly function to access the memory in only one domain. Thus, by putting different functions into different domains, DILM can achieve memory isolation and prevent memory-related vulnerabilities in WebAssembly.
 
 ## Getting Started
 ---
@@ -9,6 +9,9 @@ These instructions will get you a copy of the project up and running on your loc
 ## Prerequisites
 ---
 We conducted the experiments in a Proxmox virtual machine with 8-core vCPU, 16GB memory, and Ubuntu 18.04 LTS with Linux kernel 4.15.
+* rustc >= 1.65.0
+* clang version 13.0.0 (https://github.com/llvm/llvm-project fd1d8c2f04dde23bee0fb3a7d069a9b1046da979)
+* wasi-sdk 14.0
 
 ## Installation
 ---
