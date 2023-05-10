@@ -137,20 +137,12 @@ static void* MallocHook(size_t bytes)
         }
         #else
         ptr = PKUMalloc(size);
-        // g_ExtraMemory += PAGE_SIZE_PKU;
-        // size = PAGE_ALIGN(bytes);
-        // ptr = malloc(size);
-        // g_ExtraMemory += size;
         #endif
     }
     else
     {
-        // ptr = malloc(size);
-        // g_ExtraMemory += size;
         ptr = PKUMalloc(size);
     }
-    // ptr = PKUMalloc(size);
-    // g_MallocNumber += 1;
     return ptr;
 }
 
@@ -167,15 +159,11 @@ static void FreeHook(void* ptr)
         #else
         PKUFree(ptr);
         #endif
-        // free(ptr);
     }
     else
     {
         PKUFree(ptr);
-        // free(ptr);
     }
-    // PKUFree(ptr);
-    // g_FreeNumber += 1;
 }
 
 #ifdef __cplusplus
