@@ -21,8 +21,8 @@ BenchSuite+=("espeak"                    "./espeak"         "-f input.txt -s 120
 BenchSuite+=("facedetection"             "./facedetection"  "input.png"                               "1"   ".")
 BenchSuite+=("gnuchess"                  "./gnuchess"       "< input"                                 "1"   ".")
 BenchSuite+=("whitedb"                   "./whitedb"        ""                                        "1"   ".")
-BenchSuite+=("rg"                        "./rg"             "'123'"                                   "1"   ".")
-BenchSuite+=("coreutils"                 "./coreutils"      "fmt < coreutils.wat"                     "1"   ".")
+BenchSuite+=("rg"                        "./rg"             "123"                                     "1"   ".")
+BenchSuite+=("coreutils"                 "./coreutils"      "fmt coreutils.txt"                       "1"   ".")
 
 NumBench=$( echo "scale=0; ${#BenchSuite[@]} / $BenchSize" | bc -l )
 
@@ -48,7 +48,13 @@ runScript() {
     }
 
     runtest() {
+        if [[ "$Wasm" =~ rg.wasm ]]
+        then
+        cmd="$1"
+        else
         cmd="$1 >$2 2>&1"
+        fi
+
         if [ "$4" = "-n" ] # dry run
         then
             echo $cmd
@@ -82,8 +88,7 @@ runScript() {
             start=`date +%s.%N`
             for (( i=1; i<=$Iter; i++ ))
             do
-                echo $cmd
-                sh -c "$cmd"
+                sh -c "$cmd" | >$2 2>&1
             done
             end=`date +%s.%N`
             runtime=$( echo "$end - $start" | bc -l )
