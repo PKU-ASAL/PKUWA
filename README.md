@@ -44,3 +44,6 @@ This project is licensed under the MIT License.
 
 ## Acknowledgements
 We would like to thank the anonymous reviewers for their valuable feedback and suggestions.
+
+## Contact
+For questions, please feel free to reach out via email at lei_hanwen@stu.pku.edu.cn.
