@@ -342,11 +342,13 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
         argv: &GuestPtr<'a, GuestPtr<'a, u8>>,
         argv_buf: &GuestPtr<'a, u8>,
     ) -> Result<(), Error> {
-        Snapshot1::args_get(self, argv, argv_buf).await
+        // Snapshot1::args_get(self, argv, argv_buf).await
+        Snapshot1::args_get(self, argv, argv_buf)
     }
 
     async fn args_sizes_get(&mut self) -> Result<(types::Size, types::Size), Error> {
-        Snapshot1::args_sizes_get(self).await
+        // Snapshot1::args_sizes_get(self).await
+        Snapshot1::args_sizes_get(self)
     }
 
     async fn environ_get<'a>(
@@ -354,15 +356,18 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
         environ: &GuestPtr<'a, GuestPtr<'a, u8>>,
         environ_buf: &GuestPtr<'a, u8>,
     ) -> Result<(), Error> {
-        Snapshot1::environ_get(self, environ, environ_buf).await
+        // Snapshot1::environ_get(self, environ, environ_buf).await
+        Snapshot1::environ_get(self, environ, environ_buf)
     }
 
     async fn environ_sizes_get(&mut self) -> Result<(types::Size, types::Size), Error> {
-        Snapshot1::environ_sizes_get(self).await
+        // Snapshot1::environ_sizes_get(self).await
+        Snapshot1::environ_sizes_get(self)
     }
 
     async fn clock_res_get(&mut self, id: types::Clockid) -> Result<types::Timestamp, Error> {
-        Snapshot1::clock_res_get(self, id.into()).await
+        // Snapshot1::clock_res_get(self, id.into()).await
+        Snapshot1::clock_res_get(self, id.into())
     }
 
     async fn clock_time_get(
@@ -370,7 +375,8 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
         id: types::Clockid,
         precision: types::Timestamp,
     ) -> Result<types::Timestamp, Error> {
-        Snapshot1::clock_time_get(self, id.into(), precision).await
+        // Snapshot1::clock_time_get(self, id.into(), precision).await
+        Snapshot1::clock_time_get(self, id.into(), precision)
     }
 
     async fn fd_advise(
@@ -380,7 +386,8 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
         len: types::Filesize,
         advice: types::Advice,
     ) -> Result<(), Error> {
-        Snapshot1::fd_advise(self, fd.into(), offset, len, advice.into()).await
+        // Snapshot1::fd_advise(self, fd.into(), offset, len, advice.into()).await
+        Snapshot1::fd_advise(self, fd.into(), offset, len, advice.into())
     }
 
     async fn fd_allocate(
@@ -389,15 +396,18 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
         offset: types::Filesize,
         len: types::Filesize,
     ) -> Result<(), Error> {
-        Snapshot1::fd_allocate(self, fd.into(), offset, len).await
+        // Snapshot1::fd_allocate(self, fd.into(), offset, len).await
+        Snapshot1::fd_allocate(self, fd.into(), offset, len)
     }
 
     async fn fd_close(&mut self, fd: types::Fd) -> Result<(), Error> {
-        Snapshot1::fd_close(self, fd.into()).await
+        // Snapshot1::fd_close(self, fd.into()).await
+        Snapshot1::fd_close(self, fd.into())
     }
 
     async fn fd_datasync(&mut self, fd: types::Fd) -> Result<(), Error> {
-        Snapshot1::fd_datasync(self, fd.into()).await
+        // Snapshot1::fd_datasync(self, fd.into()).await
+        Snapshot1::fd_datasync(self, fd.into())
     }
 
     async fn fd_fdstat_get(&mut self, fd: types::Fd) -> Result<types::Fdstat, Error> {
@@ -409,7 +419,8 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
         fd: types::Fd,
         flags: types::Fdflags,
     ) -> Result<(), Error> {
-        Snapshot1::fd_fdstat_set_flags(self, fd.into(), flags.into()).await
+        // Snapshot1::fd_fdstat_set_flags(self, fd.into(), flags.into()).await
+        Snapshot1::fd_fdstat_set_flags(self, fd.into(), flags.into())
     }
 
     async fn fd_fdstat_set_rights(
@@ -424,7 +435,7 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
             fs_rights_base.into(),
             fs_rights_inheriting.into(),
         )
-        .await
+        // .await
     }
 
     async fn fd_filestat_get(&mut self, fd: types::Fd) -> Result<types::Filestat, Error> {
@@ -436,7 +447,8 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
         fd: types::Fd,
         size: types::Filesize,
     ) -> Result<(), Error> {
-        Snapshot1::fd_filestat_set_size(self, fd.into(), size).await
+        // Snapshot1::fd_filestat_set_size(self, fd.into(), size).await
+        Snapshot1::fd_filestat_set_size(self, fd.into(), size)
     }
 
     async fn fd_filestat_set_times(
@@ -572,7 +584,8 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
     }
 
     async fn fd_prestat_get(&mut self, fd: types::Fd) -> Result<types::Prestat, Error> {
-        Ok(Snapshot1::fd_prestat_get(self, fd.into()).await?.into())
+        // Ok(Snapshot1::fd_prestat_get(self, fd.into()).await?.into())
+        Ok(Snapshot1::fd_prestat_get(self, fd.into())?.into())
     }
 
     async fn fd_prestat_dir_name<'a>(
@@ -581,11 +594,13 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
         path: &GuestPtr<'a, u8>,
         path_max_len: types::Size,
     ) -> Result<(), Error> {
-        Snapshot1::fd_prestat_dir_name(self, fd.into(), path, path_max_len).await
+        // Snapshot1::fd_prestat_dir_name(self, fd.into(), path, path_max_len).await
+        Snapshot1::fd_prestat_dir_name(self, fd.into(), path, path_max_len)
     }
 
     async fn fd_renumber(&mut self, from: types::Fd, to: types::Fd) -> Result<(), Error> {
-        Snapshot1::fd_renumber(self, from.into(), to.into()).await
+        // Snapshot1::fd_renumber(self, from.into(), to.into()).await
+        Snapshot1::fd_renumber(self, from.into(), to.into())
     }
 
     async fn fd_seek(
@@ -594,15 +609,18 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
         offset: types::Filedelta,
         whence: types::Whence,
     ) -> Result<types::Filesize, Error> {
-        Snapshot1::fd_seek(self, fd.into(), offset, whence.into()).await
+        // Snapshot1::fd_seek(self, fd.into(), offset, whence.into()).await
+        Snapshot1::fd_seek(self, fd.into(), offset, whence.into())
     }
-
+    
     async fn fd_sync(&mut self, fd: types::Fd) -> Result<(), Error> {
-        Snapshot1::fd_sync(self, fd.into()).await
+        // Snapshot1::fd_sync(self, fd.into()).await
+        Snapshot1::fd_sync(self, fd.into())
     }
 
     async fn fd_tell(&mut self, fd: types::Fd) -> Result<types::Filesize, Error> {
-        Snapshot1::fd_tell(self, fd.into()).await
+        // Snapshot1::fd_tell(self, fd.into()).await
+        Snapshot1::fd_tell(self, fd.into())
     }
 
     async fn fd_readdir<'a>(
@@ -933,7 +951,8 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
     }
 
     async fn proc_exit(&mut self, status: types::Exitcode) -> wiggle::Trap {
-        Snapshot1::proc_exit(self, status).await
+        // Snapshot1::proc_exit(self, status).await
+        Snapshot1::proc_exit(self, status)
     }
 
     async fn proc_raise(&mut self, _sig: types::Signal) -> Result<(), Error> {
@@ -949,7 +968,8 @@ impl wasi_unstable::WasiUnstable for WasiCtx {
         buf: &GuestPtr<'a, u8>,
         buf_len: types::Size,
     ) -> Result<(), Error> {
-        Snapshot1::random_get(self, buf, buf_len).await
+        // Snapshot1::random_get(self, buf, buf_len).await
+        Snapshot1::random_get(self, buf, buf_len)
     }
 
     async fn sock_recv<'a>(

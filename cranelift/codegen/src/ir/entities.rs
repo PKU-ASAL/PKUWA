@@ -211,6 +211,11 @@ impl GlobalValue {
             None
         }
     }
+
+    /// Get a value
+    pub fn get_number(&self) -> u32 {
+        self.0
+    }
 }
 
 /// An opaque reference to a constant.

@@ -274,6 +274,10 @@ impl LowerBackend for S390xBackend {
             | Opcode::IfcmpImm => {
                 panic!("ALU+imm and ALU+carry ops should not appear here!");
             }
+
+            Opcode::Rdmemkey | Opcode::Wrmemkey => {
+                panic!("Memory protection key not supported in s390x arch!");
+            }
         }
     }
 

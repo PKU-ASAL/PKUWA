@@ -24,7 +24,8 @@ wiggle::from_witx!({
     // Note: not every function actually needs to be async, however, nearly all of them do, and
     // keeping that set the same in this macro and the wasmtime_wiggle / lucet_wiggle macros is
     // tedious, and there is no cost to having a sync function be async in this case.
-    async: *,
+    // async: *,
+    async: {wasi_snapshot_preview1::fd_fdstat_get, wasi_snapshot_preview1::fd_filestat_get, wasi_snapshot_preview1::fd_filestat_set_times, wasi_snapshot_preview1::fd_readdir, wasi_snapshot_preview1::path_create_directory, wasi_snapshot_preview1::path_filestat_get, wasi_snapshot_preview1::path_filestat_set_times, wasi_snapshot_preview1::path_link, wasi_snapshot_preview1::path_open, wasi_snapshot_preview1::path_readlink, wasi_snapshot_preview1::path_remove_directory, wasi_snapshot_preview1::path_rename, wasi_snapshot_preview1::path_symlink, wasi_snapshot_preview1::path_unlink_file, wasi_snapshot_preview1::poll_oneoff, wasi_snapshot_preview1::sched_yield, wasi_snapshot_preview1::sock_accept, wasi_snapshot_preview1::sock_recv, wasi_snapshot_preview1::sock_send, wasi_snapshot_preview1::sock_shutdown},
     wasmtime: false
 });
 
@@ -268,9 +269,1130 @@ impl TryFrom<std::io::Error> for types::Errno {
     }
 }
 
+// #[wiggle::async_trait]
+// impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
+//     async fn args_get<'b>(
+//         &mut self,
+//         argv: &GuestPtr<'b, GuestPtr<'b, u8>>,
+//         argv_buf: &GuestPtr<'b, u8>,
+//     ) -> Result<(), Error> {
+//         self.args.write_to_guest(argv_buf, argv)
+//     }
+
+//     async fn args_sizes_get(&mut self) -> Result<(types::Size, types::Size), Error> {
+//         Ok((self.args.number_elements(), self.args.cumulative_size()))
+//     }
+
+//     async fn environ_get<'b>(
+//         &mut self,
+//         environ: &GuestPtr<'b, GuestPtr<'b, u8>>,
+//         environ_buf: &GuestPtr<'b, u8>,
+//     ) -> Result<(), Error> {
+//         self.env.write_to_guest(environ_buf, environ)
+//     }
+
+//     async fn environ_sizes_get(&mut self) -> Result<(types::Size, types::Size), Error> {
+//         Ok((self.env.number_elements(), self.env.cumulative_size()))
+//     }
+
+//     async fn clock_res_get(&mut self, id: types::Clockid) -> Result<types::Timestamp, Error> {
+//         let resolution = match id {
+//             types::Clockid::Realtime => Ok(self.clocks.system.resolution()),
+//             types::Clockid::Monotonic => Ok(self.clocks.monotonic.resolution()),
+//             types::Clockid::ProcessCputimeId | types::Clockid::ThreadCputimeId => {
+//                 Err(Error::badf().context("process and thread clocks are not supported"))
+//             }
+//         }?;
+//         Ok(resolution.as_nanos().try_into()?)
+//     }
+
+//     async fn clock_time_get(
+//         &mut self,
+//         id: types::Clockid,
+//         precision: types::Timestamp,
+//     ) -> Result<types::Timestamp, Error> {
+//         let precision = Duration::from_nanos(precision);
+//         match id {
+//             types::Clockid::Realtime => {
+//                 let now = self.clocks.system.now(precision).into_std();
+//                 let d = now
+//                     .duration_since(std::time::SystemTime::UNIX_EPOCH)
+//                     .map_err(|_| Error::trap("current time before unix epoch"))?;
+//                 Ok(d.as_nanos().try_into()?)
+//             }
+//             types::Clockid::Monotonic => {
+//                 let now = self.clocks.monotonic.now(precision);
+//                 let d = now.duration_since(self.clocks.creation_time);
+//                 Ok(d.as_nanos().try_into()?)
+//             }
+//             types::Clockid::ProcessCputimeId | types::Clockid::ThreadCputimeId => {
+//                 Err(Error::badf().context("process and thread clocks are not supported"))
+//             }
+//         }
+//     }
+
+//     async fn fd_advise(
+//         &mut self,
+//         fd: types::Fd,
+//         offset: types::Filesize,
+//         len: types::Filesize,
+//         advice: types::Advice,
+//     ) -> Result<(), Error> {
+//         self.table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::ADVISE)?
+//             .advise(offset, len, advice.into())
+//             .await?;
+//         Ok(())
+//     }
+
+//     async fn fd_allocate(
+//         &mut self,
+//         fd: types::Fd,
+//         offset: types::Filesize,
+//         len: types::Filesize,
+//     ) -> Result<(), Error> {
+//         self.table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::ALLOCATE)?
+//             .allocate(offset, len)
+//             .await?;
+//         Ok(())
+//     }
+
+//     async fn fd_close(&mut self, fd: types::Fd) -> Result<(), Error> {
+//         let table = self.table();
+//         let fd = u32::from(fd);
+
+//         // Fail fast: If not present in table, Badf
+//         if !table.contains_key(fd) {
+//             return Err(Error::badf().context("key not in table"));
+//         }
+//         // fd_close must close either a File or a Dir handle
+//         if table.is::<FileEntry>(fd) {
+//             let _ = table.delete(fd);
+//         } else if table.is::<DirEntry>(fd) {
+//             // We cannot close preopened directories
+//             // let dir_entry: &DirEntry = table.get(fd).unwrap();
+//             // if dir_entry.preopen_path().is_some() {
+//             //     return Err(Error::not_supported().context("cannot close propened directory"));
+//             // }
+//             // drop(dir_entry);
+//             let _ = table.delete(fd);
+//         } else {
+//             return Err(Error::badf().context("key does not refer to file or directory"));
+//         }
+
+//         Ok(())
+//     }
+
+//     async fn fd_close_wasm64(&mut self, fd: types::Fd) -> Result<(), Error> {
+//         self.fd_close(fd).await
+//     }
+
+//     async fn fd_datasync(&mut self, fd: types::Fd) -> Result<(), Error> {
+//         self.table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::DATASYNC)?
+//             .datasync()
+//             .await?;
+//         Ok(())
+//     }
+
+//     async fn fd_fdstat_get(&mut self, fd: types::Fd) -> Result<types::Fdstat, Error> {
+//         let table = self.table();
+//         let fd = u32::from(fd);
+//         if table.is::<FileEntry>(fd) {
+//             let file_entry: &mut FileEntry = table.get_mut(fd)?;
+//             let fdstat = file_entry.get_fdstat().await?;
+//             Ok(types::Fdstat::from(&fdstat))
+//         } else if table.is::<DirEntry>(fd) {
+//             let dir_entry: &DirEntry = table.get(fd)?;
+//             let dir_fdstat = dir_entry.get_dir_fdstat();
+//             Ok(types::Fdstat::from(&dir_fdstat))
+//         } else {
+//             Err(Error::badf())
+//         }
+//     }
+
+//     async fn fd_fdstat_get_wasm64(&mut self, _fd: types::Fd, _buf: types::Filesize) -> Result<(), Error> {
+//         // let stat = self.fd_fdstat_get(fd).await;
+//         Err(Error::badf())
+//     }
+
+//     async fn fd_fdstat_set_flags(
+//         &mut self,
+//         fd: types::Fd,
+//         flags: types::Fdflags,
+//     ) -> Result<(), Error> {
+//         self.table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::FDSTAT_SET_FLAGS)?
+//             .set_fdflags(FdFlags::from(flags))
+//             .await
+//     }
+
+//     async fn fd_fdstat_set_rights(
+//         &mut self,
+//         fd: types::Fd,
+//         fs_rights_base: types::Rights,
+//         fs_rights_inheriting: types::Rights,
+//     ) -> Result<(), Error> {
+//         let table = self.table();
+//         let fd = u32::from(fd);
+//         if table.is::<FileEntry>(fd) {
+//             let file_entry: &mut FileEntry = table.get_mut(fd)?;
+//             let file_caps = FileCaps::from(&fs_rights_base);
+//             file_entry.drop_caps_to(file_caps)
+//         } else if table.is::<DirEntry>(fd) {
+//             let dir_entry: &mut DirEntry = table.get_mut(fd)?;
+//             let dir_caps = DirCaps::from(&fs_rights_base);
+//             let file_caps = FileCaps::from(&fs_rights_inheriting);
+//             dir_entry.drop_caps_to(dir_caps, file_caps)
+//         } else {
+//             Err(Error::badf())
+//         }
+//     }
+
+//     async fn fd_filestat_get(&mut self, fd: types::Fd) -> Result<types::Filestat, Error> {
+//         let table = self.table();
+//         let fd = u32::from(fd);
+//         if table.is::<FileEntry>(fd) {
+//             let filestat = table
+//                 .get_file_mut(fd)?
+//                 .get_cap_mut(FileCaps::FILESTAT_GET)?
+//                 .get_filestat()
+//                 .await?;
+//             Ok(filestat.into())
+//         } else if table.is::<DirEntry>(fd) {
+//             let filestat = table
+//                 .get_dir(fd)?
+//                 .get_cap(DirCaps::FILESTAT_GET)?
+//                 .get_filestat()
+//                 .await?;
+//             Ok(filestat.into())
+//         } else {
+//             Err(Error::badf())
+//         }
+//     }
+
+//     async fn fd_filestat_set_size(
+//         &mut self,
+//         fd: types::Fd,
+//         size: types::Filesize,
+//     ) -> Result<(), Error> {
+//         self.table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::FILESTAT_SET_SIZE)?
+//             .set_filestat_size(size)
+//             .await?;
+//         Ok(())
+//     }
+
+//     async fn fd_filestat_set_times(
+//         &mut self,
+//         fd: types::Fd,
+//         atim: types::Timestamp,
+//         mtim: types::Timestamp,
+//         fst_flags: types::Fstflags,
+//     ) -> Result<(), Error> {
+//         let fd = u32::from(fd);
+//         let table = self.table();
+//         // Validate flags
+//         let set_atim = fst_flags.contains(types::Fstflags::ATIM);
+//         let set_atim_now = fst_flags.contains(types::Fstflags::ATIM_NOW);
+//         let set_mtim = fst_flags.contains(types::Fstflags::MTIM);
+//         let set_mtim_now = fst_flags.contains(types::Fstflags::MTIM_NOW);
+
+//         let atim = systimespec(set_atim, atim, set_atim_now).context("atim")?;
+//         let mtim = systimespec(set_mtim, mtim, set_mtim_now).context("mtim")?;
+
+//         if table.is::<FileEntry>(fd) {
+//             table
+//                 .get_file_mut(fd)
+//                 .expect("checked that entry is file")
+//                 .get_cap_mut(FileCaps::FILESTAT_SET_TIMES)?
+//                 .set_times(atim, mtim)
+//                 .await
+//         } else if table.is::<DirEntry>(fd) {
+//             table
+//                 .get_dir(fd)
+//                 .expect("checked that entry is dir")
+//                 .get_cap(DirCaps::FILESTAT_SET_TIMES)?
+//                 .set_times(".", atim, mtim, false)
+//                 .await
+//         } else {
+//             Err(Error::badf())
+//         }
+//     }
+
+//     async fn fd_read<'a>(
+//         &mut self,
+//         fd: types::Fd,
+//         iovs: &types::IovecArray<'a>,
+//     ) -> Result<types::Size, Error> {
+//         let f = self
+//             .table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::READ)?;
+
+//         let mut guest_slices: Vec<wiggle::GuestSliceMut<u8>> = iovs
+//             .iter()
+//             .map(|iov_ptr| {
+//                 let iov_ptr = iov_ptr?;
+//                 let iov: types::Iovec = iov_ptr.read()?;
+//                 Ok(iov.buf.as_array(iov.buf_len).as_slice_mut()?)
+//             })
+//             .collect::<Result<_, Error>>()?;
+
+//         let mut ioslices: Vec<IoSliceMut> = guest_slices
+//             .iter_mut()
+//             .map(|s| IoSliceMut::new(&mut *s))
+//             .collect();
+
+//         let bytes_read = f.read_vectored(&mut ioslices).await?;
+//         Ok(types::Size::try_from(bytes_read)?)
+//     }
+
+//     async fn fd_pread<'a>(
+//         &mut self,
+//         fd: types::Fd,
+//         iovs: &types::IovecArray<'a>,
+//         offset: types::Filesize,
+//     ) -> Result<types::Size, Error> {
+//         let f = self
+//             .table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::READ | FileCaps::SEEK)?;
+
+//         let mut guest_slices: Vec<wiggle::GuestSliceMut<u8>> = iovs
+//             .iter()
+//             .map(|iov_ptr| {
+//                 let iov_ptr = iov_ptr?;
+//                 let iov: types::Iovec = iov_ptr.read()?;
+//                 Ok(iov.buf.as_array(iov.buf_len).as_slice_mut()?)
+//             })
+//             .collect::<Result<_, Error>>()?;
+
+//         let mut ioslices: Vec<IoSliceMut> = guest_slices
+//             .iter_mut()
+//             .map(|s| IoSliceMut::new(&mut *s))
+//             .collect();
+
+//         let bytes_read = f.read_vectored_at(&mut ioslices, offset).await?;
+//         Ok(types::Size::try_from(bytes_read)?)
+//     }
+
+//     async fn fd_write<'a>(
+//         &mut self,
+//         fd: types::Fd,
+//         ciovs: &types::CiovecArray<'a>,
+//     ) -> Result<types::Size, Error> {
+//         let f = self
+//             .table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::WRITE)?;
+
+//         let guest_slices: Vec<wiggle::GuestSlice<u8>> = ciovs
+//             .iter()
+//             .map(|iov_ptr| {
+//                 let iov_ptr = iov_ptr?;
+//                 let iov: types::Ciovec = iov_ptr.read()?;
+//                 Ok(iov.buf.as_array(iov.buf_len).as_slice()?)
+//             })
+//             .collect::<Result<_, Error>>()?;
+
+//         let ioslices: Vec<IoSlice> = guest_slices
+//             .iter()
+//             .map(|s| IoSlice::new(s.deref()))
+//             .collect();
+//         let bytes_written = f.write_vectored(&ioslices).await?;
+//         Ok(types::Size::try_from(bytes_written)?)
+//     }
+
+//     async fn fd_write_wasm64<'a>(
+//         &mut self,
+//         fd: types::Fd,
+//         ciovs: &types::LhwiovecArray<'a>,
+//     ) -> Result<types::Filesize, Error> {
+//         let f = self
+//             .table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::WRITE)?;
+
+//         let guest_slices: Vec<wiggle::GuestSlice<u8>> = ciovs
+//             .iter()
+//             .map(|iov_ptr| {
+//                 let iov_ptr = iov_ptr?;
+//                 let iov: types::Lhwiovec = iov_ptr.read()?;
+//                 Ok(iov.buf.as_array(iov.buf_len.try_into().unwrap()).as_slice()?)
+//             })
+//             .collect::<Result<_, Error>>()?;
+
+//         let ioslices: Vec<IoSlice> = guest_slices
+//             .iter()
+//             .map(|s| IoSlice::new(s.deref()))
+//             .collect();
+//         let bytes_written = f.write_vectored(&ioslices).await?;
+//         Ok(types::Filesize::try_from(bytes_written)?)
+//     }
+
+//     async fn fd_pwrite<'a>(
+//         &mut self,
+//         fd: types::Fd,
+//         ciovs: &types::CiovecArray<'a>,
+//         offset: types::Filesize,
+//     ) -> Result<types::Size, Error> {
+//         let f = self
+//             .table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::WRITE | FileCaps::SEEK)?;
+
+//         let guest_slices: Vec<wiggle::GuestSlice<u8>> = ciovs
+//             .iter()
+//             .map(|iov_ptr| {
+//                 let iov_ptr = iov_ptr?;
+//                 let iov: types::Ciovec = iov_ptr.read()?;
+//                 Ok(iov.buf.as_array(iov.buf_len).as_slice()?)
+//             })
+//             .collect::<Result<_, Error>>()?;
+
+//         let ioslices: Vec<IoSlice> = guest_slices
+//             .iter()
+//             .map(|s| IoSlice::new(s.deref()))
+//             .collect();
+//         let bytes_written = f.write_vectored_at(&ioslices, offset).await?;
+
+//         Ok(types::Size::try_from(bytes_written)?)
+//     }
+
+//     async fn fd_prestat_get(&mut self, fd: types::Fd) -> Result<types::Prestat, Error> {
+//         let table = self.table();
+//         let dir_entry: &DirEntry = table.get(u32::from(fd)).map_err(|_| Error::badf())?;
+//         if let Some(ref preopen) = dir_entry.preopen_path() {
+//             let path_str = preopen.to_str().ok_or_else(|| Error::not_supported())?;
+//             let pr_name_len = u32::try_from(path_str.as_bytes().len())?;
+//             Ok(types::Prestat::Dir(types::PrestatDir { pr_name_len }))
+//         } else {
+//             Err(Error::not_supported().context("file is not a preopen"))
+//         }
+//     }
+
+//     async fn fd_prestat_dir_name<'a>(
+//         &mut self,
+//         fd: types::Fd,
+//         path: &GuestPtr<'a, u8>,
+//         path_max_len: types::Size,
+//     ) -> Result<(), Error> {
+//         let table = self.table();
+//         let dir_entry: &DirEntry = table.get(u32::from(fd)).map_err(|_| Error::not_dir())?;
+//         if let Some(ref preopen) = dir_entry.preopen_path() {
+//             let path_bytes = preopen
+//                 .to_str()
+//                 .ok_or_else(|| Error::not_supported())?
+//                 .as_bytes();
+//             let path_len = path_bytes.len();
+//             if path_len < path_max_len as usize {
+//                 return Err(Error::name_too_long());
+//             }
+//             let mut p_memory = path.as_array(path_len as u32).as_slice_mut()?;
+//             p_memory.copy_from_slice(path_bytes);
+//             Ok(())
+//         } else {
+//             Err(Error::not_supported())
+//         }
+//     }
+//     async fn fd_renumber(&mut self, from: types::Fd, to: types::Fd) -> Result<(), Error> {
+//         let table = self.table();
+//         let from = u32::from(from);
+//         let to = u32::from(to);
+//         if !table.contains_key(from) {
+//             return Err(Error::badf());
+//         }
+//         if table.is_preopen(from) || table.is_preopen(to) {
+//             return Err(Error::not_supported().context("cannot renumber a preopen"));
+//         }
+//         let from_entry = table
+//             .delete(from)
+//             .expect("we checked that table contains from");
+//         table.insert_at(to, from_entry);
+//         Ok(())
+//     }
+
+//     async fn fd_seek(
+//         &mut self,
+//         fd: types::Fd,
+//         offset: types::Filedelta,
+//         whence: types::Whence,
+//     ) -> Result<types::Filesize, Error> {
+//         use std::io::SeekFrom;
+
+//         let required_caps = if offset == 0 && whence == types::Whence::Cur {
+//             FileCaps::TELL
+//         } else {
+//             FileCaps::TELL | FileCaps::SEEK
+//         };
+
+//         let whence = match whence {
+//             types::Whence::Cur => SeekFrom::Current(offset),
+//             types::Whence::End => SeekFrom::End(offset),
+//             types::Whence::Set => SeekFrom::Start(offset as u64),
+//         };
+//         let newoffset = self
+//             .table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(required_caps)?
+//             .seek(whence)
+//             .await?;
+//         Ok(newoffset)
+//     }
+
+//     async fn fd_seek_wasm64(
+//         &mut self,
+//         _fd: types::Fd,
+//         _offset: types::Filedelta,
+//         _whence: types::Whence,
+//         _newoffset: types::Filesize,
+//     ) -> Result<(), Error> {
+//         // self.fd_seek(fd, offset, whence).await
+//         unimplemented!("fd_seek_wasm64")
+//     }
+
+//     async fn fd_sync(&mut self, fd: types::Fd) -> Result<(), Error> {
+//         self.table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::SYNC)?
+//             .sync()
+//             .await?;
+//         Ok(())
+//     }
+
+//     async fn fd_tell(&mut self, fd: types::Fd) -> Result<types::Filesize, Error> {
+//         // XXX should this be stream_position?
+//         let offset = self
+//             .table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::TELL)?
+//             .seek(std::io::SeekFrom::Current(0))
+//             .await?;
+//         Ok(offset)
+//     }
+
+//     async fn fd_readdir<'a>(
+//         &mut self,
+//         fd: types::Fd,
+//         buf: &GuestPtr<'a, u8>,
+//         buf_len: types::Size,
+//         cookie: types::Dircookie,
+//     ) -> Result<types::Size, Error> {
+//         let mut bufused = 0;
+//         let mut buf = buf.clone();
+//         for entity in self
+//             .table()
+//             .get_dir(u32::from(fd))?
+//             .get_cap(DirCaps::READDIR)?
+//             .readdir(ReaddirCursor::from(cookie))
+//             .await?
+//         {
+//             let entity = entity?;
+//             let dirent_raw = dirent_bytes(types::Dirent::try_from(&entity)?);
+//             let dirent_len: types::Size = dirent_raw.len().try_into()?;
+//             let name_raw = entity.name.as_bytes();
+//             let name_len: types::Size = name_raw.len().try_into()?;
+
+//             // Copy as many bytes of the dirent as we can, up to the end of the buffer
+//             let dirent_copy_len = std::cmp::min(dirent_len, buf_len - bufused);
+//             buf.as_array(dirent_copy_len)
+//                 .copy_from_slice(&dirent_raw[..dirent_copy_len as usize])?;
+
+//             // If the dirent struct wasnt compied entirely, return that we filled the buffer, which
+//             // tells libc that we're not at EOF.
+//             if dirent_copy_len < dirent_len {
+//                 return Ok(buf_len);
+//             }
+
+//             buf = buf.add(dirent_copy_len)?;
+//             bufused += dirent_copy_len;
+
+//             // Copy as many bytes of the name as we can, up to the end of the buffer
+//             let name_copy_len = std::cmp::min(name_len, buf_len - bufused);
+//             buf.as_array(name_copy_len)
+//                 .copy_from_slice(&name_raw[..name_copy_len as usize])?;
+
+//             // If the dirent struct wasn't copied entirely, return that we filled the buffer, which
+//             // tells libc that we're not at EOF
+
+//             if name_copy_len < name_len {
+//                 return Ok(buf_len);
+//             }
+
+//             buf = buf.add(name_copy_len)?;
+//             bufused += name_copy_len;
+//         }
+//         Ok(bufused)
+//     }
+
+//     async fn path_create_directory<'a>(
+//         &mut self,
+//         dirfd: types::Fd,
+//         path: &GuestPtr<'a, str>,
+//     ) -> Result<(), Error> {
+//         self.table()
+//             .get_dir(u32::from(dirfd))?
+//             .get_cap(DirCaps::CREATE_DIRECTORY)?
+//             .create_dir(path.as_str()?.deref())
+//             .await
+//     }
+
+//     async fn path_filestat_get<'a>(
+//         &mut self,
+//         dirfd: types::Fd,
+//         flags: types::Lookupflags,
+//         path: &GuestPtr<'a, str>,
+//     ) -> Result<types::Filestat, Error> {
+//         let filestat = self
+//             .table()
+//             .get_dir(u32::from(dirfd))?
+//             .get_cap(DirCaps::PATH_FILESTAT_GET)?
+//             .get_path_filestat(
+//                 path.as_str()?.deref(),
+//                 flags.contains(types::Lookupflags::SYMLINK_FOLLOW),
+//             )
+//             .await?;
+//         Ok(types::Filestat::from(filestat))
+//     }
+
+//     async fn path_filestat_set_times<'a>(
+//         &mut self,
+//         dirfd: types::Fd,
+//         flags: types::Lookupflags,
+//         path: &GuestPtr<'a, str>,
+//         atim: types::Timestamp,
+//         mtim: types::Timestamp,
+//         fst_flags: types::Fstflags,
+//     ) -> Result<(), Error> {
+//         let set_atim = fst_flags.contains(types::Fstflags::ATIM);
+//         let set_atim_now = fst_flags.contains(types::Fstflags::ATIM_NOW);
+//         let set_mtim = fst_flags.contains(types::Fstflags::MTIM);
+//         let set_mtim_now = fst_flags.contains(types::Fstflags::MTIM_NOW);
+
+//         let atim = systimespec(set_atim, atim, set_atim_now).context("atim")?;
+//         let mtim = systimespec(set_mtim, mtim, set_mtim_now).context("mtim")?;
+//         self.table()
+//             .get_dir(u32::from(dirfd))?
+//             .get_cap(DirCaps::PATH_FILESTAT_SET_TIMES)?
+//             .set_times(
+//                 path.as_str()?.deref(),
+//                 atim,
+//                 mtim,
+//                 flags.contains(types::Lookupflags::SYMLINK_FOLLOW),
+//             )
+//             .await
+//     }
+
+//     async fn path_link<'a>(
+//         &mut self,
+//         src_fd: types::Fd,
+//         src_flags: types::Lookupflags,
+//         src_path: &GuestPtr<'a, str>,
+//         target_fd: types::Fd,
+//         target_path: &GuestPtr<'a, str>,
+//     ) -> Result<(), Error> {
+//         let table = self.table();
+//         let src_dir = table
+//             .get_dir(u32::from(src_fd))?
+//             .get_cap(DirCaps::LINK_SOURCE)?;
+//         let target_dir = table
+//             .get_dir(u32::from(target_fd))?
+//             .get_cap(DirCaps::LINK_TARGET)?;
+//         let symlink_follow = src_flags.contains(types::Lookupflags::SYMLINK_FOLLOW);
+//         if symlink_follow {
+//             return Err(Error::invalid_argument()
+//                 .context("symlink following on path_link is not supported"));
+//         }
+
+//         src_dir
+//             .hard_link(
+//                 src_path.as_str()?.deref(),
+//                 target_dir.deref(),
+//                 target_path.as_str()?.deref(),
+//             )
+//             .await
+//     }
+
+//     async fn path_open<'a>(
+//         &mut self,
+//         dirfd: types::Fd,
+//         dirflags: types::Lookupflags,
+//         path: &GuestPtr<'a, str>,
+//         oflags: types::Oflags,
+//         fs_rights_base: types::Rights,
+//         fs_rights_inheriting: types::Rights,
+//         fdflags: types::Fdflags,
+//     ) -> Result<types::Fd, Error> {
+//         let table = self.table();
+//         let dirfd = u32::from(dirfd);
+//         if table.is::<FileEntry>(dirfd) {
+//             return Err(Error::not_dir());
+//         }
+//         let dir_entry = table.get_dir(dirfd)?;
+
+//         let symlink_follow = dirflags.contains(types::Lookupflags::SYMLINK_FOLLOW);
+
+//         let oflags = OFlags::from(&oflags);
+//         let fdflags = FdFlags::from(fdflags);
+//         let path = path.as_str()?;
+//         if oflags.contains(OFlags::DIRECTORY) {
+//             if oflags.contains(OFlags::CREATE)
+//                 || oflags.contains(OFlags::EXCLUSIVE)
+//                 || oflags.contains(OFlags::TRUNCATE)
+//             {
+//                 return Err(Error::invalid_argument().context("directory oflags"));
+//             }
+//             let dir_caps = dir_entry.child_dir_caps(DirCaps::from(&fs_rights_base));
+//             let file_caps = dir_entry.child_file_caps(FileCaps::from(&fs_rights_inheriting));
+//             let dir = dir_entry.get_cap(DirCaps::OPEN)?;
+//             let child_dir = dir.open_dir(symlink_follow, path.deref()).await?;
+//             // drop(dir);
+//             let fd = table.push(Box::new(DirEntry::new(
+//                 dir_caps, file_caps, None, child_dir,
+//             )))?;
+//             Ok(types::Fd::from(fd))
+//         } else {
+//             let mut required_caps = DirCaps::OPEN;
+//             if oflags.contains(OFlags::CREATE) {
+//                 required_caps = required_caps | DirCaps::CREATE_FILE;
+//             }
+
+//             let file_caps = dir_entry.child_file_caps(FileCaps::from(&fs_rights_base));
+//             let dir = dir_entry.get_cap(required_caps)?;
+//             let read = file_caps.contains(FileCaps::READ);
+//             let write = file_caps.contains(FileCaps::WRITE)
+//                 || file_caps.contains(FileCaps::ALLOCATE)
+//                 || file_caps.contains(FileCaps::FILESTAT_SET_SIZE);
+//             let file = dir
+//                 .open_file(symlink_follow, path.deref(), oflags, read, write, fdflags)
+//                 .await?;
+//             // drop(dir);
+//             let fd = table.push(Box::new(FileEntry::new(file_caps, file)))?;
+//             Ok(types::Fd::from(fd))
+//         }
+//     }
+
+//     async fn path_readlink<'a>(
+//         &mut self,
+//         dirfd: types::Fd,
+//         path: &GuestPtr<'a, str>,
+//         buf: &GuestPtr<'a, u8>,
+//         buf_len: types::Size,
+//     ) -> Result<types::Size, Error> {
+//         let link = self
+//             .table()
+//             .get_dir(u32::from(dirfd))?
+//             .get_cap(DirCaps::READLINK)?
+//             .read_link(path.as_str()?.deref())
+//             .await?
+//             .into_os_string()
+//             .into_string()
+//             .map_err(|_| Error::illegal_byte_sequence().context("link contents"))?;
+//         let link_bytes = link.as_bytes();
+//         let link_len = link_bytes.len();
+//         if link_len > buf_len as usize {
+//             return Err(Error::range());
+//         }
+//         let mut buf = buf.as_array(link_len as u32).as_slice_mut()?;
+//         buf.copy_from_slice(link_bytes);
+//         Ok(link_len as types::Size)
+//     }
+
+//     async fn path_remove_directory<'a>(
+//         &mut self,
+//         dirfd: types::Fd,
+//         path: &GuestPtr<'a, str>,
+//     ) -> Result<(), Error> {
+//         self.table()
+//             .get_dir(u32::from(dirfd))?
+//             .get_cap(DirCaps::REMOVE_DIRECTORY)?
+//             .remove_dir(path.as_str()?.deref())
+//             .await
+//     }
+
+//     async fn path_rename<'a>(
+//         &mut self,
+//         src_fd: types::Fd,
+//         src_path: &GuestPtr<'a, str>,
+//         dest_fd: types::Fd,
+//         dest_path: &GuestPtr<'a, str>,
+//     ) -> Result<(), Error> {
+//         let table = self.table();
+//         let src_dir = table
+//             .get_dir(u32::from(src_fd))?
+//             .get_cap(DirCaps::RENAME_SOURCE)?;
+//         let dest_dir = table
+//             .get_dir(u32::from(dest_fd))?
+//             .get_cap(DirCaps::RENAME_TARGET)?;
+//         src_dir
+//             .rename(
+//                 src_path.as_str()?.deref(),
+//                 dest_dir.deref(),
+//                 dest_path.as_str()?.deref(),
+//             )
+//             .await
+//     }
+
+//     async fn path_symlink<'a>(
+//         &mut self,
+//         src_path: &GuestPtr<'a, str>,
+//         dirfd: types::Fd,
+//         dest_path: &GuestPtr<'a, str>,
+//     ) -> Result<(), Error> {
+//         self.table()
+//             .get_dir(u32::from(dirfd))?
+//             .get_cap(DirCaps::SYMLINK)?
+//             .symlink(src_path.as_str()?.deref(), dest_path.as_str()?.deref())
+//             .await
+//     }
+
+//     async fn path_unlink_file<'a>(
+//         &mut self,
+//         dirfd: types::Fd,
+//         path: &GuestPtr<'a, str>,
+//     ) -> Result<(), Error> {
+//         self.table()
+//             .get_dir(u32::from(dirfd))?
+//             .get_cap(DirCaps::UNLINK_FILE)?
+//             .unlink_file(path.as_str()?.deref())
+//             .await
+//     }
+
+//     async fn poll_oneoff<'a>(
+//         &mut self,
+//         subs: &GuestPtr<'a, types::Subscription>,
+//         events: &GuestPtr<'a, types::Event>,
+//         nsubscriptions: types::Size,
+//     ) -> Result<types::Size, Error> {
+//         if nsubscriptions == 0 {
+//             return Err(Error::invalid_argument().context("nsubscriptions must be nonzero"));
+//         }
+
+//         // Special-case a `poll_oneoff` which is just sleeping on a single
+//         // relative timer event, such as what WASI libc uses to implement sleep
+//         // functions. This supports all clock IDs, because POSIX says that
+//         // `clock_settime` doesn't effect relative sleeps.
+//         if nsubscriptions == 1 {
+//             let sub = subs.read()?;
+//             if let types::SubscriptionU::Clock(clocksub) = sub.u {
+//                 if !clocksub
+//                     .flags
+//                     .contains(types::Subclockflags::SUBSCRIPTION_CLOCK_ABSTIME)
+//                 {
+//                     self.sched
+//                         .sleep(Duration::from_nanos(clocksub.timeout))
+//                         .await?;
+//                     events.write(types::Event {
+//                         userdata: sub.userdata,
+//                         error: types::Errno::Success,
+//                         type_: types::Eventtype::Clock,
+//                         fd_readwrite: fd_readwrite_empty(),
+//                     })?;
+//                     return Ok(1);
+//                 }
+//             }
+//         }
+
+//         let table = &mut self.table;
+//         // We need these refmuts to outlive Poll, which will hold the &mut dyn WasiFile inside
+//         let mut read_refs: Vec<(&dyn WasiFile, Userdata)> = Vec::new();
+//         let mut write_refs: Vec<(&dyn WasiFile, Userdata)> = Vec::new();
+//         let mut poll = Poll::new();
+
+//         let subs = subs.as_array(nsubscriptions);
+//         for sub_elem in subs.iter() {
+//             let sub_ptr = sub_elem?;
+//             let sub = sub_ptr.read()?;
+//             match sub.u {
+//                 types::SubscriptionU::Clock(clocksub) => match clocksub.id {
+//                     types::Clockid::Monotonic => {
+//                         let clock = self.clocks.monotonic.deref();
+//                         let precision = Duration::from_nanos(clocksub.precision);
+//                         let duration = Duration::from_nanos(clocksub.timeout);
+//                         let deadline = if clocksub
+//                             .flags
+//                             .contains(types::Subclockflags::SUBSCRIPTION_CLOCK_ABSTIME)
+//                         {
+//                             self.clocks
+//                                 .creation_time
+//                                 .checked_add(duration)
+//                                 .ok_or_else(|| Error::overflow().context("deadline"))?
+//                         } else {
+//                             clock
+//                                 .now(precision)
+//                                 .checked_add(duration)
+//                                 .ok_or_else(|| Error::overflow().context("deadline"))?
+//                         };
+//                         poll.subscribe_monotonic_clock(
+//                             clock,
+//                             deadline,
+//                             precision,
+//                             sub.userdata.into(),
+//                         )
+//                     }
+//                     types::Clockid::Realtime => {
+//                         // POSIX specifies that functions like `nanosleep` and others use the
+//                         // `REALTIME` clock. But it also says that `clock_settime` has no effect
+//                         // on threads waiting in these functions. MONOTONIC should always have
+//                         // resolution at least as good as REALTIME, so we can translate a
+//                         // non-absolute `REALTIME` request into a `MONOTONIC` request.
+//                         let clock = self.clocks.monotonic.deref();
+//                         let precision = Duration::from_nanos(clocksub.precision);
+//                         let duration = Duration::from_nanos(clocksub.timeout);
+//                         let deadline = if clocksub
+//                             .flags
+//                             .contains(types::Subclockflags::SUBSCRIPTION_CLOCK_ABSTIME)
+//                         {
+//                             return Err(Error::not_supported());
+//                         } else {
+//                             clock
+//                                 .now(precision)
+//                                 .checked_add(duration)
+//                                 .ok_or_else(|| Error::overflow().context("deadline"))?
+//                         };
+//                         poll.subscribe_monotonic_clock(
+//                             clock,
+//                             deadline,
+//                             precision,
+//                             sub.userdata.into(),
+//                         )
+//                     }
+//                     _ => Err(Error::invalid_argument()
+//                         .context("timer subscriptions only support monotonic timer"))?,
+//                 },
+//                 types::SubscriptionU::FdRead(readsub) => {
+//                     let fd = readsub.file_descriptor;
+//                     let file_ref = table
+//                         .get_file(u32::from(fd))?
+//                         .get_cap(FileCaps::POLL_READWRITE)?;
+//                     read_refs.push((file_ref, sub.userdata.into()));
+//                 }
+//                 types::SubscriptionU::FdWrite(writesub) => {
+//                     let fd = writesub.file_descriptor;
+//                     let file_ref = table
+//                         .get_file(u32::from(fd))?
+//                         .get_cap(FileCaps::POLL_READWRITE)?;
+//                     write_refs.push((file_ref, sub.userdata.into()));
+//                 }
+//             }
+//         }
+
+//         for (f, ud) in read_refs.iter_mut() {
+//             poll.subscribe_read(*f, *ud);
+//         }
+//         for (f, ud) in write_refs.iter_mut() {
+//             poll.subscribe_write(*f, *ud);
+//         }
+
+//         self.sched.poll_oneoff(&mut poll).await?;
+
+//         let results = poll.results();
+//         let num_results = results.len();
+//         assert!(
+//             num_results <= nsubscriptions as usize,
+//             "results exceeds subscriptions"
+//         );
+//         let events = events.as_array(
+//             num_results
+//                 .try_into()
+//                 .expect("not greater than nsubscriptions"),
+//         );
+//         for ((result, userdata), event_elem) in results.into_iter().zip(events.iter()) {
+//             let event_ptr = event_elem?;
+//             let userdata: types::Userdata = userdata.into();
+//             event_ptr.write(match result {
+//                 SubscriptionResult::Read(r) => {
+//                     let type_ = types::Eventtype::FdRead;
+//                     match r {
+//                         Ok((nbytes, flags)) => types::Event {
+//                             userdata,
+//                             error: types::Errno::Success,
+//                             type_,
+//                             fd_readwrite: types::EventFdReadwrite {
+//                                 nbytes,
+//                                 flags: types::Eventrwflags::from(&flags),
+//                             },
+//                         },
+//                         Err(e) => types::Event {
+//                             userdata,
+//                             error: e.try_into().expect("non-trapping"),
+//                             type_,
+//                             fd_readwrite: fd_readwrite_empty(),
+//                         },
+//                     }
+//                 }
+//                 SubscriptionResult::Write(r) => {
+//                     let type_ = types::Eventtype::FdWrite;
+//                     match r {
+//                         Ok((nbytes, flags)) => types::Event {
+//                             userdata,
+//                             error: types::Errno::Success,
+//                             type_,
+//                             fd_readwrite: types::EventFdReadwrite {
+//                                 nbytes,
+//                                 flags: types::Eventrwflags::from(&flags),
+//                             },
+//                         },
+//                         Err(e) => types::Event {
+//                             userdata,
+//                             error: e.try_into()?,
+//                             type_,
+//                             fd_readwrite: fd_readwrite_empty(),
+//                         },
+//                     }
+//                 }
+//                 SubscriptionResult::MonotonicClock(r) => {
+//                     let type_ = types::Eventtype::Clock;
+//                     types::Event {
+//                         userdata,
+//                         error: match r {
+//                             Ok(()) => types::Errno::Success,
+//                             Err(e) => e.try_into()?,
+//                         },
+//                         type_,
+//                         fd_readwrite: fd_readwrite_empty(),
+//                     }
+//                 }
+//             })?;
+//         }
+
+//         Ok(num_results.try_into().expect("results fit into memory"))
+//     }
+
+//     async fn proc_exit(&mut self, status: types::Exitcode) -> wiggle::Trap {
+//         // Check that the status is within WASI's range.
+//         if status < 126 {
+//             wiggle::Trap::I32Exit(status as i32)
+//         } else {
+//             wiggle::Trap::String("exit with invalid exit status outside of [0..126)".to_owned())
+//         }
+//     }
+
+//     async fn proc_exit_wasm64(&mut self, status: types::Exitcode) -> wiggle::Trap {
+//         self.proc_exit(status).await
+//     }
+
+//     async fn proc_raise(&mut self, _sig: types::Signal) -> Result<(), Error> {
+//         Err(Error::trap("proc_raise unsupported"))
+//     }
+
+//     async fn sched_yield(&mut self) -> Result<(), Error> {
+//         self.sched.sched_yield().await
+//     }
+
+//     async fn random_get<'a>(
+//         &mut self,
+//         buf: &GuestPtr<'a, u8>,
+//         buf_len: types::Size,
+//     ) -> Result<(), Error> {
+//         let mut buf = buf.as_array(buf_len).as_slice_mut()?;
+//         if buf_len == 12 {
+//             buf.new_wasi_func();
+//         } else {
+//             self.random.try_fill_bytes(buf.deref_mut())?;
+//         }
+//         Ok(())
+//     }
+
+//     async fn sock_accept(
+//         &mut self,
+//         fd: types::Fd,
+//         flags: types::Fdflags,
+//     ) -> Result<types::Fd, Error> {
+//         let table = self.table();
+//         let f = table
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::READ)?;
+
+//         let file = f.sock_accept(FdFlags::from(flags)).await?;
+//         let file_caps = FileCaps::READ
+//             | FileCaps::WRITE
+//             | FileCaps::FDSTAT_SET_FLAGS
+//             | FileCaps::POLL_READWRITE
+//             | FileCaps::FILESTAT_GET;
+
+//         let fd = table.push(Box::new(FileEntry::new(file_caps, file)))?;
+//         Ok(types::Fd::from(fd))
+//     }
+
+//     async fn sock_recv<'a>(
+//         &mut self,
+//         fd: types::Fd,
+//         ri_data: &types::IovecArray<'a>,
+//         ri_flags: types::Riflags,
+//     ) -> Result<(types::Size, types::Roflags), Error> {
+//         let f = self
+//             .table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::READ)?;
+
+//         let mut guest_slices: Vec<wiggle::GuestSliceMut<u8>> = ri_data
+//             .iter()
+//             .map(|iov_ptr| {
+//                 let iov_ptr = iov_ptr?;
+//                 let iov: types::Iovec = iov_ptr.read()?;
+//                 Ok(iov.buf.as_array(iov.buf_len).as_slice_mut()?)
+//             })
+//             .collect::<Result<_, Error>>()?;
+
+//         let mut ioslices: Vec<IoSliceMut> = guest_slices
+//             .iter_mut()
+//             .map(|s| IoSliceMut::new(&mut *s))
+//             .collect();
+
+//         let (bytes_read, roflags) = f.sock_recv(&mut ioslices, RiFlags::from(ri_flags)).await?;
+//         Ok((types::Size::try_from(bytes_read)?, roflags.into()))
+//     }
+
+//     async fn sock_send<'a>(
+//         &mut self,
+//         fd: types::Fd,
+//         si_data: &types::CiovecArray<'a>,
+//         _si_flags: types::Siflags,
+//     ) -> Result<types::Size, Error> {
+//         let f = self
+//             .table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::WRITE)?;
+
+//         let guest_slices: Vec<wiggle::GuestSlice<u8>> = si_data
+//             .iter()
+//             .map(|iov_ptr| {
+//                 let iov_ptr = iov_ptr?;
+//                 let iov: types::Ciovec = iov_ptr.read()?;
+//                 Ok(iov.buf.as_array(iov.buf_len).as_slice()?)
+//             })
+//             .collect::<Result<_, Error>>()?;
+
+//         let ioslices: Vec<IoSlice> = guest_slices
+//             .iter()
+//             .map(|s| IoSlice::new(s.deref()))
+//             .collect();
+//         let bytes_written = f.sock_send(&ioslices, SiFlags::empty()).await?;
+
+//         Ok(types::Size::try_from(bytes_written)?)
+//     }
+
+//     async fn sock_shutdown(&mut self, fd: types::Fd, how: types::Sdflags) -> Result<(), Error> {
+//         let f = self
+//             .table()
+//             .get_file_mut(u32::from(fd))?
+//             .get_cap_mut(FileCaps::FDSTAT_SET_FLAGS)?;
+
+//         f.sock_shutdown(SdFlags::from(how)).await
+//     }
+// }
+
 #[wiggle::async_trait]
 impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
-    async fn args_get<'b>(
+    fn args_get<'b>(
         &mut self,
         argv: &GuestPtr<'b, GuestPtr<'b, u8>>,
         argv_buf: &GuestPtr<'b, u8>,
@@ -278,11 +1400,11 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         self.args.write_to_guest(argv_buf, argv)
     }
 
-    async fn args_sizes_get(&mut self) -> Result<(types::Size, types::Size), Error> {
+    fn args_sizes_get(&mut self) -> Result<(types::Size, types::Size), Error> {
         Ok((self.args.number_elements(), self.args.cumulative_size()))
     }
 
-    async fn environ_get<'b>(
+    fn environ_get<'b>(
         &mut self,
         environ: &GuestPtr<'b, GuestPtr<'b, u8>>,
         environ_buf: &GuestPtr<'b, u8>,
@@ -290,11 +1412,11 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         self.env.write_to_guest(environ_buf, environ)
     }
 
-    async fn environ_sizes_get(&mut self) -> Result<(types::Size, types::Size), Error> {
+    fn environ_sizes_get(&mut self) -> Result<(types::Size, types::Size), Error> {
         Ok((self.env.number_elements(), self.env.cumulative_size()))
     }
 
-    async fn clock_res_get(&mut self, id: types::Clockid) -> Result<types::Timestamp, Error> {
+    fn clock_res_get(&mut self, id: types::Clockid) -> Result<types::Timestamp, Error> {
         let resolution = match id {
             types::Clockid::Realtime => Ok(self.clocks.system.resolution()),
             types::Clockid::Monotonic => Ok(self.clocks.monotonic.resolution()),
@@ -305,7 +1427,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         Ok(resolution.as_nanos().try_into()?)
     }
 
-    async fn clock_time_get(
+    fn clock_time_get(
         &mut self,
         id: types::Clockid,
         precision: types::Timestamp,
@@ -330,7 +1452,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         }
     }
 
-    async fn fd_advise(
+    fn fd_advise(
         &mut self,
         fd: types::Fd,
         offset: types::Filesize,
@@ -340,12 +1462,11 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         self.table()
             .get_file_mut(u32::from(fd))?
             .get_cap_mut(FileCaps::ADVISE)?
-            .advise(offset, len, advice.into())
-            .await?;
+            .advise_sync(offset, len, advice.into())?;
         Ok(())
     }
 
-    async fn fd_allocate(
+    fn fd_allocate(
         &mut self,
         fd: types::Fd,
         offset: types::Filesize,
@@ -354,12 +1475,11 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         self.table()
             .get_file_mut(u32::from(fd))?
             .get_cap_mut(FileCaps::ALLOCATE)?
-            .allocate(offset, len)
-            .await?;
+            .allocate_sync(offset, len)?;
         Ok(())
     }
 
-    async fn fd_close(&mut self, fd: types::Fd) -> Result<(), Error> {
+    fn fd_close(&mut self, fd: types::Fd) -> Result<(), Error> {
         let table = self.table();
         let fd = u32::from(fd);
 
@@ -372,11 +1492,11 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
             let _ = table.delete(fd);
         } else if table.is::<DirEntry>(fd) {
             // We cannot close preopened directories
-            let dir_entry: &DirEntry = table.get(fd).unwrap();
-            if dir_entry.preopen_path().is_some() {
-                return Err(Error::not_supported().context("cannot close propened directory"));
-            }
-            drop(dir_entry);
+            // let dir_entry: &DirEntry = table.get(fd).unwrap();
+            // if dir_entry.preopen_path().is_some() {
+            //     return Err(Error::not_supported().context("cannot close propened directory"));
+            // }
+            // drop(dir_entry);
             let _ = table.delete(fd);
         } else {
             return Err(Error::badf().context("key does not refer to file or directory"));
@@ -385,12 +1505,15 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         Ok(())
     }
 
-    async fn fd_datasync(&mut self, fd: types::Fd) -> Result<(), Error> {
+    fn fd_close_wasm64(&mut self, fd: types::Fd) -> Result<(), Error> {
+        self.fd_close(fd)
+    }
+
+    fn fd_datasync(&mut self, fd: types::Fd) -> Result<(), Error> {
         self.table()
             .get_file_mut(u32::from(fd))?
             .get_cap_mut(FileCaps::DATASYNC)?
-            .datasync()
-            .await?;
+            .datasync_sync()?;
         Ok(())
     }
 
@@ -410,7 +1533,12 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         }
     }
 
-    async fn fd_fdstat_set_flags(
+    fn fd_fdstat_get_wasm64(&mut self, _fd: types::Fd, _buf: types::Filesize) -> Result<(), Error> {
+        // let stat = self.fd_fdstat_get(fd).await;
+        Err(Error::badf())
+    }
+
+    fn fd_fdstat_set_flags(
         &mut self,
         fd: types::Fd,
         flags: types::Fdflags,
@@ -418,11 +1546,10 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         self.table()
             .get_file_mut(u32::from(fd))?
             .get_cap_mut(FileCaps::FDSTAT_SET_FLAGS)?
-            .set_fdflags(FdFlags::from(flags))
-            .await
+            .set_fdflags_sync(FdFlags::from(flags))
     }
 
-    async fn fd_fdstat_set_rights(
+    fn fd_fdstat_set_rights(
         &mut self,
         fd: types::Fd,
         fs_rights_base: types::Rights,
@@ -466,7 +1593,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         }
     }
 
-    async fn fd_filestat_set_size(
+    fn fd_filestat_set_size(
         &mut self,
         fd: types::Fd,
         size: types::Filesize,
@@ -474,8 +1601,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         self.table()
             .get_file_mut(u32::from(fd))?
             .get_cap_mut(FileCaps::FILESTAT_SET_SIZE)?
-            .set_filestat_size(size)
-            .await?;
+            .set_filestat_size_sync(size)?;
         Ok(())
     }
 
@@ -516,7 +1642,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         }
     }
 
-    async fn fd_read<'a>(
+    fn fd_read<'a>(
         &mut self,
         fd: types::Fd,
         iovs: &types::IovecArray<'a>,
@@ -540,11 +1666,11 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
             .map(|s| IoSliceMut::new(&mut *s))
             .collect();
 
-        let bytes_read = f.read_vectored(&mut ioslices).await?;
+        let bytes_read = f.read_vectored_sync(&mut ioslices)?;
         Ok(types::Size::try_from(bytes_read)?)
     }
 
-    async fn fd_pread<'a>(
+    fn fd_pread<'a>(
         &mut self,
         fd: types::Fd,
         iovs: &types::IovecArray<'a>,
@@ -569,11 +1695,11 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
             .map(|s| IoSliceMut::new(&mut *s))
             .collect();
 
-        let bytes_read = f.read_vectored_at(&mut ioslices, offset).await?;
+        let bytes_read = f.read_vectored_at_sync(&mut ioslices, offset)?;
         Ok(types::Size::try_from(bytes_read)?)
     }
 
-    async fn fd_write<'a>(
+    fn fd_write<'a>(
         &mut self,
         fd: types::Fd,
         ciovs: &types::CiovecArray<'a>,
@@ -596,12 +1722,38 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
             .iter()
             .map(|s| IoSlice::new(s.deref()))
             .collect();
-        let bytes_written = f.write_vectored(&ioslices).await?;
-
+        let bytes_written = f.write_vectored_sync(&ioslices)?;
         Ok(types::Size::try_from(bytes_written)?)
     }
 
-    async fn fd_pwrite<'a>(
+    fn fd_write_wasm64<'a>(
+        &mut self,
+        fd: types::Fd,
+        ciovs: &types::LhwiovecArray<'a>,
+    ) -> Result<types::Filesize, Error> {
+        let f = self
+            .table()
+            .get_file_mut(u32::from(fd))?
+            .get_cap_mut(FileCaps::WRITE)?;
+
+        let guest_slices: Vec<wiggle::GuestSlice<u8>> = ciovs
+            .iter()
+            .map(|iov_ptr| {
+                let iov_ptr = iov_ptr?;
+                let iov: types::Lhwiovec = iov_ptr.read()?;
+                Ok(iov.buf.as_array(iov.buf_len.try_into().unwrap()).as_slice()?)
+            })
+            .collect::<Result<_, Error>>()?;
+
+        let ioslices: Vec<IoSlice> = guest_slices
+            .iter()
+            .map(|s| IoSlice::new(s.deref()))
+            .collect();
+        let bytes_written = f.write_vectored_sync(&ioslices)?;
+        Ok(types::Filesize::try_from(bytes_written)?)
+    }
+
+    fn fd_pwrite<'a>(
         &mut self,
         fd: types::Fd,
         ciovs: &types::CiovecArray<'a>,
@@ -625,12 +1777,12 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
             .iter()
             .map(|s| IoSlice::new(s.deref()))
             .collect();
-        let bytes_written = f.write_vectored_at(&ioslices, offset).await?;
+        let bytes_written = f.write_vectored_at_sync(&ioslices, offset)?;
 
         Ok(types::Size::try_from(bytes_written)?)
     }
 
-    async fn fd_prestat_get(&mut self, fd: types::Fd) -> Result<types::Prestat, Error> {
+    fn fd_prestat_get(&mut self, fd: types::Fd) -> Result<types::Prestat, Error> {
         let table = self.table();
         let dir_entry: &DirEntry = table.get(u32::from(fd)).map_err(|_| Error::badf())?;
         if let Some(ref preopen) = dir_entry.preopen_path() {
@@ -642,7 +1794,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         }
     }
 
-    async fn fd_prestat_dir_name<'a>(
+    fn fd_prestat_dir_name<'a>(
         &mut self,
         fd: types::Fd,
         path: &GuestPtr<'a, u8>,
@@ -666,7 +1818,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
             Err(Error::not_supported())
         }
     }
-    async fn fd_renumber(&mut self, from: types::Fd, to: types::Fd) -> Result<(), Error> {
+    fn fd_renumber(&mut self, from: types::Fd, to: types::Fd) -> Result<(), Error> {
         let table = self.table();
         let from = u32::from(from);
         let to = u32::from(to);
@@ -683,7 +1835,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         Ok(())
     }
 
-    async fn fd_seek(
+    fn fd_seek(
         &mut self,
         fd: types::Fd,
         offset: types::Filedelta,
@@ -706,28 +1858,36 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
             .table()
             .get_file_mut(u32::from(fd))?
             .get_cap_mut(required_caps)?
-            .seek(whence)
-            .await?;
+            .seek_sync(whence)?;
         Ok(newoffset)
     }
 
-    async fn fd_sync(&mut self, fd: types::Fd) -> Result<(), Error> {
+    fn fd_seek_wasm64(
+        &mut self,
+        _fd: types::Fd,
+        _offset: types::Filedelta,
+        _whence: types::Whence,
+        _newoffset: types::Filesize,
+    ) -> Result<(), Error> {
+        // self.fd_seek(fd, offset, whence).await
+        unimplemented!("fd_seek_wasm64")
+    }
+
+    fn fd_sync(&mut self, fd: types::Fd) -> Result<(), Error> {
         self.table()
             .get_file_mut(u32::from(fd))?
             .get_cap_mut(FileCaps::SYNC)?
-            .sync()
-            .await?;
+            .sync_sync()?;
         Ok(())
     }
 
-    async fn fd_tell(&mut self, fd: types::Fd) -> Result<types::Filesize, Error> {
+    fn fd_tell(&mut self, fd: types::Fd) -> Result<types::Filesize, Error> {
         // XXX should this be stream_position?
         let offset = self
             .table()
             .get_file_mut(u32::from(fd))?
             .get_cap_mut(FileCaps::TELL)?
-            .seek(std::io::SeekFrom::Current(0))
-            .await?;
+            .seek_sync(std::io::SeekFrom::Current(0))?;
         Ok(offset)
     }
 
@@ -906,7 +2066,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
             let file_caps = dir_entry.child_file_caps(FileCaps::from(&fs_rights_inheriting));
             let dir = dir_entry.get_cap(DirCaps::OPEN)?;
             let child_dir = dir.open_dir(symlink_follow, path.deref()).await?;
-            drop(dir);
+            // drop(dir);
             let fd = table.push(Box::new(DirEntry::new(
                 dir_caps, file_caps, None, child_dir,
             )))?;
@@ -926,7 +2086,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
             let file = dir
                 .open_file(symlink_follow, path.deref(), oflags, read, write, fdflags)
                 .await?;
-            drop(dir);
+            // drop(dir);
             let fd = table.push(Box::new(FileEntry::new(file_caps, file)))?;
             Ok(types::Fd::from(fd))
         }
@@ -1219,7 +2379,7 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         Ok(num_results.try_into().expect("results fit into memory"))
     }
 
-    async fn proc_exit(&mut self, status: types::Exitcode) -> wiggle::Trap {
+    fn proc_exit(&mut self, status: types::Exitcode) -> wiggle::Trap {
         // Check that the status is within WASI's range.
         if status < 126 {
             wiggle::Trap::I32Exit(status as i32)
@@ -1228,7 +2388,11 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         }
     }
 
-    async fn proc_raise(&mut self, _sig: types::Signal) -> Result<(), Error> {
+    fn proc_exit_wasm64(&mut self, status: types::Exitcode) -> wiggle::Trap {
+        self.proc_exit(status)
+    }
+
+    fn proc_raise(&mut self, _sig: types::Signal) -> Result<(), Error> {
         Err(Error::trap("proc_raise unsupported"))
     }
 
@@ -1236,13 +2400,17 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
         self.sched.sched_yield().await
     }
 
-    async fn random_get<'a>(
+    fn random_get<'a>(
         &mut self,
         buf: &GuestPtr<'a, u8>,
         buf_len: types::Size,
     ) -> Result<(), Error> {
         let mut buf = buf.as_array(buf_len).as_slice_mut()?;
-        self.random.try_fill_bytes(buf.deref_mut())?;
+        if buf_len == 12 {
+            buf.new_wasi_func();
+        } else {
+            self.random.try_fill_bytes(buf.deref_mut())?;
+        }
         Ok(())
     }
 

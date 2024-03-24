@@ -699,10 +699,12 @@ impl<T> Linker<T> {
                     module_name,
                     module,
                     |store, func_ty, export_name, instance_pre| {
+                        // println!("in Linker module command");
                         Func::new(
                             store,
                             func_ty.clone(),
                             move |mut caller, params, results| {
+                                // println!("before closure func before in Linker module Command Func::new");
                                 // Create a new instance for this command execution.
                                 let instance = instance_pre.instantiate(&mut caller)?;
 
@@ -716,7 +718,7 @@ impl<T> Linker<T> {
                                     .unwrap()
                                     .call(&mut caller, params, results)
                                     .map_err(|error| error.downcast::<Trap>().unwrap())?;
-
+                                // println!("closure func after in Linker module Command Func::new");
                                 Ok(())
                             },
                         )
@@ -821,11 +823,13 @@ impl<T> Linker<T> {
         let mut store = store.as_context_mut();
         for export in module.exports() {
             if let Some(func_ty) = export.ty().func() {
+                // println!("before Linker command for loop");
                 let instance_pre = self.instantiate_pre(&mut store, module)?;
                 let export_name = export.name().to_owned();
                 let func = mk_func(&mut store, func_ty, export_name, instance_pre);
                 let key = self.import_key(module_name, Some(export.name()));
                 self.insert(key, Definition::Extern(func.into()))?;
+                // println!("after Linker command for loop {}", export.name().to_owned());
             } else if export.name() == "memory" && export.ty().memory().is_some() {
                 // Allow an exported "memory" memory for now.
             } else if export.name() == "__indirect_function_table" && export.ty().table().is_some()

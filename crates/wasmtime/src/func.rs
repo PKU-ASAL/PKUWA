@@ -335,9 +335,11 @@ impl Func {
         ty: FuncType,
         func: impl Fn(Caller<'_, T>, &[Val], &mut [Val]) -> Result<(), Trap> + Send + Sync + 'static,
     ) -> Self {
+        // println!("Func new 1");
         let ty_clone = ty.clone();
         unsafe {
             Func::new_unchecked(store, ty, move |caller, values| {
+                // println!("Func new 2");
                 Func::invoke(caller, &ty_clone, values, &func)
             })
         }
@@ -823,14 +825,17 @@ impl Func {
         trampoline: VMTrampoline,
         params_and_returns: *mut ValRaw,
     ) -> Result<(), Trap> {
+        // println!("call_unchecked_raw");
         invoke_wasm_and_catch_traps(store, |caller| {
+            // println!("before call_unchecked_raw invoke_wasm_and_catch_traps");
             let trampoline = wasmtime_runtime::prepare_host_to_wasm_trampoline(caller, trampoline);
             trampoline(
                 anyfunc.as_ref().vmctx,
                 caller,
                 anyfunc.as_ref().func_ptr.as_ptr(),
                 params_and_returns,
-            )
+            );
+            // println!("after call_unchecked_raw invoke_wasm_and_catch_traps");
         })
     }
 
@@ -1000,6 +1005,7 @@ impl Func {
     ) -> Self {
         let anyfunc = export.anyfunc.as_ref();
         let trampoline = store.lookup_trampoline(&*anyfunc);
+        // println!("Func from_wasmtime_function");
         Func::from_func_kind(FuncKind::StoreOwned { trampoline, export }, store)
     }
 
@@ -1046,8 +1052,9 @@ impl Func {
 
         val_vec.extend((0..ty.results().len()).map(|_| Val::null()));
         let (params, results) = val_vec.split_at_mut(nparams);
+        // println!("before Func invoke");
         func(caller.sub_caller(), params, results)?;
-
+        // println!("after Func invoke");
         // See the comment in `Func::call_impl`'s `write_params` function.
         if ty.as_wasm_func_type().externref_returns_count()
             > caller
@@ -1228,7 +1235,7 @@ pub(crate) fn invoke_wasm_and_catch_traps<T>(
 ) -> Result<(), Trap> {
     unsafe {
         let exit = enter_wasm(store);
-
+        // println!("before invoke_wasm_and_catch_traps");
         if let Err(trap) = store.0.call_hook(CallHook::CallingWasm) {
             exit_wasm(store, exit);
             return Err(trap);
@@ -1241,6 +1248,7 @@ pub(crate) fn invoke_wasm_and_catch_traps<T>(
         );
         exit_wasm(store, exit);
         store.0.call_hook(CallHook::ReturningFromWasm)?;
+        // println!("after invoke_wasm_and_catch_traps");
         result.map_err(|t| Trap::from_runtime_box(store.0, t))
     }
 }
@@ -1688,6 +1696,7 @@ impl<T> Caller<'_, T> {
         // back to themselves. If this caller doesn't have that `host_state`
         // then it probably means it was a host-created object like `Func::new`
         // which doesn't have any exports we want to return anyway.
+        // println!("Caller get_export {name}");
         self.caller
             .host_state()
             .downcast_ref::<Instance>()?
@@ -2005,15 +2014,21 @@ impl HostFunc {
         func: impl Fn(Caller<'_, T>, &mut [ValRaw]) -> Result<(), Trap> + Send + Sync + 'static,
     ) -> Self {
         let func = move |caller_vmctx, values: &mut [ValRaw]| {
+            // println!("HostFunc new_unchecked before Caller::<T>::with");
             Caller::<T>::with(caller_vmctx, |mut caller| {
+                // println!("HostFunc new_unchecked before call_hook 1");
                 caller.store.0.call_hook(CallHook::CallingHost)?;
+                // println!("HostFunc new_unchecked after call_hook 1");
                 let result = func(caller.sub_caller(), values)?;
+                // println!("HostFunc new_unchecked before call_hook 2");
                 caller.store.0.call_hook(CallHook::ReturningFromHost)?;
+                // println!("HostFunc new_unchecked after call_hook 2");
                 Ok(result)
             })
         };
         let (ctx, signature, trampoline) = crate::trampoline::create_function(&ty, func, engine)
             .expect("failed to create function");
+        // println!("HostFunc new_unchecked after trampoline::create_function");
         HostFunc::_new(engine, ctx, signature, trampoline)
     }
 
@@ -2052,6 +2067,7 @@ impl HostFunc {
     pub unsafe fn to_func(self: &Arc<Self>, store: &mut StoreOpaque) -> Func {
         self.validate_store(store);
         let me = self.clone();
+        // println!("HostFunc to_func");
         Func::from_func_kind(FuncKind::SharedHost(me), store)
     }
 
@@ -2075,12 +2091,14 @@ impl HostFunc {
     /// `StoreOpaque::rooted_host_funcs`.
     pub unsafe fn to_func_store_rooted(self: &Arc<Self>, store: &mut StoreOpaque) -> Func {
         self.validate_store(store);
+        // println!("HostFunc to_func_store_rooted");
         Func::from_func_kind(FuncKind::RootedHost(RootedHostFunc::new(self)), store)
     }
 
     /// Same as [`HostFunc::to_func`], different ownership.
     unsafe fn into_func(self, store: &mut StoreOpaque) -> Func {
         self.validate_store(store);
+        // println!("HostFunc into_func");
         Func::from_func_kind(FuncKind::Host(Box::new(self)), store)
     }
 

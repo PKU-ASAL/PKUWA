@@ -163,7 +163,7 @@ where
         // other side of a C++ shim, so it can never be inlined enough to make
         // the memory go away, so the size matters here for performance.
         let mut captures = (func, MaybeUninit::uninit(), params, false);
-
+        // println!("call_raw");
         let result = invoke_wasm_and_catch_traps(store, |caller| {
             let (anyfunc, ret, params, returned) = &mut captures;
             let anyfunc = anyfunc.as_ref();

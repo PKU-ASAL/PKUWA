@@ -473,6 +473,10 @@ pub(crate) fn lower_insn_to_regs(
                 op
             )));
         }
+
+        Opcode::Rdmemkey | Opcode::Wrmemkey => {
+            panic!("Memory protection key not supported in arm arch!");
+        }
     }
 
     Ok(())

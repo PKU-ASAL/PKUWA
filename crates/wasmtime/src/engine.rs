@@ -509,6 +509,7 @@ impl Engine {
                 "has_avx512vl" => Some(std::is_x86_feature_detected!("avx512vl")),
                 "has_avx512vbmi" => Some(std::is_x86_feature_detected!("avx512vbmi")),
                 "has_lzcnt" => Some(std::is_x86_feature_detected!("lzcnt")),
+                "has_pkru" => Some(std::is_x86_feature_detected!("xsaves")),
 
                 // fall through to the very bottom to indicate that support is
                 // not enabled to test whether this feature is enabled on the

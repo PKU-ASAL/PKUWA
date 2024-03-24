@@ -470,7 +470,9 @@ fn lower_insn_to_regs(
         | Opcode::TlsValue
         | Opcode::SqmulRoundSat
         | Opcode::Uunarrow
-        | Opcode::Nop => {
+        | Opcode::Nop
+        | Opcode::Rdmemkey
+        | Opcode::Wrmemkey => {
             let ty = if outputs.len() > 0 {
                 Some(ctx.output_ty(insn, 0))
             } else {

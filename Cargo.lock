@@ -738,7 +738,7 @@ dependencies = [
  "termcolor",
  "thiserror",
  "walkdir",
- "wat",
+ "wat 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -754,9 +754,9 @@ dependencies = [
  "serde",
  "smallvec",
  "target-lexicon",
- "wasmparser",
+ "wasmparser 0.89.1",
  "wasmtime-types",
- "wat",
+ "wat 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1257,6 +1257,15 @@ checksum = "fd48d33ec7f05fbfa152300fdad764757cbded343c1aa1cff2fbaf4134851803"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "getopts"
+version = "0.2.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14dbbfd5c71d70241ecf9e6f13737f7b5ce823821063188d7e46c41d371eebd5"
+dependencies = [
+ "unicode-width",
 ]
 
 [[package]]
@@ -1908,9 +1917,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.12.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7709cef83f0c1f58f666e746a08b21e0085f7440fa6a29cc194d68aac97a4225"
+checksum = "e82dad04139b71a90c080c8463fe0dc7902db5192d939bd0950f074d014339e1"
 
 [[package]]
 name = "oorandom"
@@ -2841,7 +2850,7 @@ dependencies = [
  "wasi-common",
  "wasmtime",
  "wasmtime-wasi",
- "wat",
+ "wat 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3127,6 +3136,7 @@ dependencies = [
  "cap-rand",
  "cap-std",
  "io-extras",
+ "libc",
  "rustix",
  "thiserror",
  "tracing",
@@ -3254,7 +3264,7 @@ dependencies = [
  "rand 0.8.5",
  "thiserror",
  "wasm-encoder",
- "wasmparser",
+ "wasmparser 0.89.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3268,7 +3278,7 @@ dependencies = [
  "indexmap",
  "leb128",
  "wasm-encoder",
- "wasmparser",
+ "wasmparser 0.89.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3277,7 +3287,7 @@ version = "0.1.0"
 dependencies = [
  "ocaml-interop",
  "once_cell",
- "wat",
+ "wat 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3307,6 +3317,19 @@ dependencies = [
 [[package]]
 name = "wasmparser"
 version = "0.89.1"
+dependencies = [
+ "anyhow",
+ "criterion",
+ "getopts",
+ "indexmap",
+ "once_cell",
+ "rayon",
+ "wat 1.0.48",
+]
+
+[[package]]
+name = "wasmparser"
+version = "0.89.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ab5d3e08b13876f96dd55608d03cd4883a0545884932d5adf11925876c96daef"
 dependencies = [
@@ -3320,7 +3343,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aa9e5ee2f56cc8a5da489558114e8c118e5a8416d96aefe63dcf1b5b05b858c6"
 dependencies = [
  "anyhow",
- "wasmparser",
+ "wasmparser 0.89.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3344,7 +3367,7 @@ dependencies = [
  "target-lexicon",
  "tempfile",
  "wasi-cap-std-sync",
- "wasmparser",
+ "wasmparser 0.89.1",
  "wasmtime-cache",
  "wasmtime-component-macro",
  "wasmtime-component-util",
@@ -3354,7 +3377,7 @@ dependencies = [
  "wasmtime-jit",
  "wasmtime-runtime",
  "wasmtime-wasi",
- "wat",
+ "wat 1.0.48",
  "windows-sys",
 ]
 
@@ -3379,7 +3402,7 @@ dependencies = [
  "wasmtime-wasi",
  "wasmtime-wasi-crypto",
  "wasmtime-wasi-nn",
- "wat",
+ "wat 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3394,7 +3417,7 @@ dependencies = [
  "wasmtime",
  "wasmtime-c-api-macros",
  "wasmtime-wasi",
- "wat",
+ "wat 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3433,6 +3456,7 @@ version = "2.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bitflags",
  "clap 3.2.8",
  "component-macro-test",
  "component-test-util",
@@ -3464,7 +3488,7 @@ dependencies = [
  "wasmtime-wasi-nn",
  "wasmtime-wast",
  "wast 46.0.0",
- "wat",
+ "wat 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
  "windows-sys",
 ]
 
@@ -3509,7 +3533,7 @@ dependencies = [
  "object",
  "target-lexicon",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.89.1",
  "wasmtime-environ",
 ]
 
@@ -3530,11 +3554,11 @@ dependencies = [
  "target-lexicon",
  "thiserror",
  "wasm-encoder",
- "wasmparser",
+ "wasmparser 0.89.1",
  "wasmprinter",
  "wasmtime-component-util",
  "wasmtime-types",
- "wat",
+ "wat 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3545,10 +3569,10 @@ dependencies = [
  "component-fuzz-util",
  "env_logger 0.9.0",
  "libfuzzer-sys",
- "wasmparser",
+ "wasmparser 0.89.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasmprinter",
  "wasmtime-environ",
- "wat",
+ "wat 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3607,11 +3631,11 @@ dependencies = [
  "wasm-smith",
  "wasm-spec-interpreter",
  "wasmi",
- "wasmparser",
+ "wasmparser 0.89.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasmprinter",
  "wasmtime",
  "wasmtime-wast",
- "wat",
+ "wat 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3679,7 +3703,7 @@ dependencies = [
  "cranelift-entity",
  "serde",
  "thiserror",
- "wasmparser",
+ "wasmparser 0.89.1",
 ]
 
 [[package]]
@@ -3747,6 +3771,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "wastlhw"
+version = "46.0.0"
+dependencies = [
+ "anyhow",
+ "leb128",
+ "memchr",
+ "rayon",
+ "unicode-width",
+ "wasm-encoder",
+]
+
+[[package]]
+name = "wat"
+version = "1.0.48"
+dependencies = [
+ "wastlhw",
+]
+
+[[package]]
 name = "wat"
 version = "1.0.48"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3783,6 +3826,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bitflags",
+ "libc",
  "proptest",
  "thiserror",
  "tokio",

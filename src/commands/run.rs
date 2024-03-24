@@ -1,5 +1,6 @@
 //! The module that implements the `wasmtime run` command.
 
+use crate::commands::pku::define_intrinsic_function;
 use anyhow::{anyhow, bail, Context as _, Result};
 use clap::Parser;
 use once_cell::sync::Lazy;
@@ -180,6 +181,8 @@ impl RunCommand {
         let mut linker = Linker::new(&engine);
         linker.allow_unknown_exports(self.allow_unknown_exports);
 
+        define_intrinsic_function(&mut linker)?;
+
         populate_with_wasi(
             &mut store,
             &mut linker,
@@ -313,7 +316,7 @@ impl RunCommand {
                 engine.increment_epoch();
             });
         }
-
+        // println!("before RunCommand load_main_module//////////////////////");
         // Read the wasm module binary either as `*.wat` or a raw binary.
         let module = self.load_module(linker.engine(), &self.module)?;
         // The main module might be allowed to have unknown imports, which
@@ -325,7 +328,7 @@ impl RunCommand {
         linker
             .module(&mut *store, "", &module)
             .context(format!("failed to instantiate {:?}", self.module))?;
-
+        // println!("after RunCommand load_main_module///////////////////////");
         // If a function to invoke was given, invoke it.
         if let Some(name) = self.invoke.as_ref() {
             self.invoke_export(store, linker, name)
@@ -384,7 +387,7 @@ impl RunCommand {
                 t => bail!("unsupported argument type {:?}", t),
             });
         }
-
+        // println!("RunCommand invoke_func");
         // Invoke the function and then afterwards print all the results that came
         // out, if there are any.
         let mut results = vec![Val::null(); ty.results().len()];
@@ -442,8 +445,9 @@ impl RunCommand {
     }
 }
 
+/// For env function
 #[derive(Default)]
-struct Host {
+pub struct Host {
     wasi: Option<wasmtime_wasi::WasiCtx>,
     #[cfg(feature = "wasi-nn")]
     wasi_nn: Option<WasiNnCtx>,

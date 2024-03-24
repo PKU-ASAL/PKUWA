@@ -1040,8 +1040,9 @@ impl PoolingInstanceAllocator {
 
         let instances = InstancePool::new(strategy, &instance_limits, tunables)?;
 
-        drop(stack_size); // suppress unused warnings w/o async feature
-        drop(async_stack_zeroing); // suppress unused warnings w/o async feature
+        // drop(stack_size); // suppress unused warnings w/o async feature
+        // drop(async_stack_zeroing); // suppress unused warnings w/o async feature
+        let _ = (stack_size, async_stack_zeroing);
 
         Ok(Self {
             instances: instances,

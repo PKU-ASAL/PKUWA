@@ -339,6 +339,14 @@ impl<'a, 'data> ModuleEnvironment<'a, 'data> {
                             )));
                         }
                     };
+                    // match initializer {
+                    //     GlobalInit::I32Const(value) => {
+                    //         if value == 65536 {
+                    //             initializer = GlobalInit::I32Const(value - 4096);
+                    //         }
+                    //     }
+                    //     _ => {}
+                    // }
                     let ty = Global::new(ty, initializer)?;
                     self.result.module.globals.push(ty);
                 }
@@ -518,6 +526,7 @@ impl<'a, 'data> ModuleEnvironment<'a, 'data> {
                     _ => unreachable!(),
                 };
 
+                const PAGE_SIZE: usize = 4096;
                 let cnt = usize::try_from(data.get_count()).unwrap();
                 initializers.reserve_exact(cnt);
                 self.result.data.reserve_exact(cnt);
@@ -544,15 +553,31 @@ impl<'a, 'data> ModuleEnvironment<'a, 'data> {
                         *total += range.end - range.start;
                         Ok(range)
                     };
+                    let mk_guard_range = |total: &mut u32| -> Result<_, WasmError> {
+                        let range = u32::try_from(data.len() + PAGE_SIZE)
+                            .ok()
+                            .and_then(|size| {
+                                let start = *total;
+                                let end = start.checked_add(size)?;
+                                Some(start..end)
+                            })
+                            .ok_or_else(|| {
+                                WasmError::Unsupported(format!(
+                                    "more than 4 gigabytes of data in wasm module",
+                                ))
+                            })?;
+                        *total += range.end - range.start;
+                        Ok(range)
+                    };
                     match kind {
                         DataKind::Active {
                             memory_index,
                             offset_expr,
                         } => {
-                            let range = mk_range(&mut self.result.total_data)?;
+                            // let range = mk_range(&mut self.result.total_data)?;
                             let memory_index = MemoryIndex::from_u32(memory_index);
                             let mut offset_expr_reader = offset_expr.get_binary_reader();
-                            let (base, offset) = match offset_expr_reader.read_operator()? {
+                            let (base, old_offset) = match offset_expr_reader.read_operator()? {
                                 Operator::I32Const { value } => (None, value as u64),
                                 Operator::I64Const { value } => (None, value as u64),
                                 Operator::GlobalGet { global_index } => {
@@ -565,14 +590,29 @@ impl<'a, 'data> ModuleEnvironment<'a, 'data> {
                                     )));
                                 }
                             };
-
-                            initializers.push(MemoryInitializer {
-                                memory_index,
-                                base,
-                                offset,
-                                data: range,
-                            });
-                            self.result.data.push(data.into());
+                            if index == 0 && old_offset > PAGE_SIZE.try_into().unwrap() {
+                                let offset = old_offset - PAGE_SIZE as u64;
+                                let range = mk_guard_range(&mut self.result.total_data)?;
+                                initializers.push(MemoryInitializer {
+                                    memory_index,
+                                    base,
+                                    offset,
+                                    data: range,
+                                });
+                                let guard_page = &[1u8; PAGE_SIZE];
+                                let new_data = [guard_page, data].concat();
+                                self.result.data.push(new_data.into());
+                            } else {
+                                let offset = old_offset;
+                                let range = mk_range(&mut self.result.total_data)?;
+                                initializers.push(MemoryInitializer {
+                                    memory_index,
+                                    base,
+                                    offset,
+                                    data: range,
+                                });
+                                self.result.data.push(data.into());
+                            }
                         }
                         DataKind::Passive => {
                             let data_index = DataIndex::from_u32(index as u32);

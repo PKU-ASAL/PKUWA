@@ -1,3 +1,4 @@
+use libc::{self, SYS_pkey_alloc, SYS_pkey_mprotect};
 use std::fmt;
 use std::slice;
 use std::str;
@@ -823,6 +824,93 @@ impl<'a, T> std::ops::DerefMut for GuestSliceMut<'a, T> {
 impl<'a, T> Drop for GuestSliceMut<'a, T> {
     fn drop(&mut self) {
         self.mem.mut_unborrow(self.borrow)
+    }
+}
+
+use std::arch::asm;
+impl<'a> GuestSliceMut<'a, u8> {
+    fn rdpkru(&self) -> u32 {
+        let ecx = 0;
+        let mut pkru: u32;
+
+        unsafe {
+            asm!(".byte 0x0f,0x01,0xee;",
+                out("eax") pkru,
+                in("ecx") ecx);
+        }
+
+        return pkru;
+    }
+
+    fn wrpkru(&self, pkru: u32) {
+        let ecx = 0;
+        let edx = 0;
+
+        unsafe {
+            asm!(".byte 0x0f,0x01,0xef;",
+                in("eax") pkru,
+                in("ecx") ecx,
+                in("edx") edx);
+        }
+    }
+
+    fn read_pkru(&mut self) {
+        let pkru = self.rdpkru();
+        self.ptr[3..7].copy_from_slice(&pkru.to_be_bytes());
+    }
+
+    fn write_pkru(&self) {
+        let pkru = u32::from_be_bytes(
+            <[u8; 4]>::try_from(&self.ptr[3..7]).expect("u32::from_be_bytes fails"),
+        );
+        self.wrpkru(pkru);
+    }
+
+    fn pkey_alloc(&mut self) {
+        let pkey;
+        unsafe {
+            pkey = libc::syscall(SYS_pkey_alloc, 0, 0);
+        }
+        if pkey < 0 {
+            println!("error in libc::syscall SYS_pkey_alloc");
+        } else {
+            self.ptr[2] = pkey as u8;
+        }
+    }
+
+    fn pkey_protect(&self) {
+        let addr = u32::from_be_bytes(
+            <[u8; 4]>::try_from(&self.ptr[3..7]).expect("u32::from_be_bytes fails"),
+        );
+        let len = u32::from_be_bytes(
+            <[u8; 4]>::try_from(&self.ptr[6..10]).expect("u32::from_be_bytes fails"),
+        );
+        let prot = self.ptr[10] as u32;
+        let pkey = self.ptr[11] as u32;
+        unsafe {
+            // println!("{:p}", self.mem.base().0.add(addr as usize));
+            if libc::syscall(SYS_pkey_mprotect, self.mem.base().0.add(addr as usize), len, prot, pkey) == -1 {
+                println!("error in libc::syscall SYS_pkey_mprotect");
+            }
+        }
+    }
+
+    pub fn new_wasi_func(&mut self) {
+        let rdpkru: &[u8] = &[0x0F, 0x01, 0xEE];
+        let wrpkru: &[u8] = &[0x0F, 0x01, 0xEF];
+        let pkalloc: &[u8] = &[0x01, 0x21];
+        let pkprotect: &[u8] = &[0x01, 0x20];
+        if &self.ptr[0..3] == rdpkru {
+            self.read_pkru();
+        } else if &self.ptr[0..3] == wrpkru {
+            self.write_pkru();
+        } else if &self.ptr[0..2] == pkalloc {
+            self.pkey_alloc();
+        } else if &self.ptr[0..2] == pkprotect {
+            self.pkey_protect();
+        } else {
+            println!("new_wasi_func");
+        }
     }
 }
 

@@ -14,7 +14,7 @@ edition = "2021"
 anyhow = "1.0"
 cranelift-entity = { path = "../../cranelift/entity", version = "0.89.0" }
 wasmtime-types = { path = "../types", version = "2.0.0" }
-wasmparser = "0.89.0"
+wasmparser = { path = "../wasmparser", version = "0.89.0"}
 indexmap = { version = "1.0.2", features = ["serde-1"] }
 thiserror = "1.0.4"
 serde = { version = "1.0.94", features = ["derive"] }

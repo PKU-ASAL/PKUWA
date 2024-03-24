@@ -126,6 +126,7 @@ pub(crate) fn emit(
             InstructionSet::AVX512F => info.isa_flags.has_avx512f(),
             InstructionSet::AVX512VBMI => info.isa_flags.has_avx512vbmi(),
             InstructionSet::AVX512VL => info.isa_flags.has_avx512vl(),
+            InstructionSet::PKU => info.isa_flags.has_pkru(),
         }
     };
 
@@ -3193,6 +3194,51 @@ pub(crate) fn emit(
 
         Inst::DummyUse { .. } => {
             // Nothing.
+        }
+
+        Inst::PKU {
+            op,
+            src1,
+            src2,
+            dst,
+        } => {
+            let src = allocs.next(src1.to_reg());
+            let edx = allocs.next(src2.to_reg());
+            let _dst = allocs.next(dst.to_reg().to_reg());
+
+            // xor %ecx, %ecx
+            let xorecx = Inst::alu_rmi_r(
+                OperandSize::Size32,
+                AluRmiROpcode::Xor,
+                RegMemImm::reg(regs::rcx()),
+                Writable::from_reg(regs::rcx()),
+            );
+            xorecx.emit(&[], sink, info, state);
+
+            // xor %edx, %edx
+            let xoredx = Inst::alu_rmi_r(
+                OperandSize::Size32,
+                AluRmiROpcode::Xor,
+                RegMemImm::reg(edx),
+                Writable::from_reg(edx),
+            );
+            xoredx.emit(&[], sink, info, state);
+
+            // mov %src, %eax
+            if let PkuOpcode::WRPKRU = op {
+                let size = OperandSize::Size32;
+                let src = Gpr::new(src).unwrap();
+                let dst = WritableGpr::from_writable_reg(Writable::from_reg(regs::rax())).unwrap();
+                Inst::MovRR { size, src, dst }.emit(&[], sink, info, state);
+            }
+
+            // rdpkru / wrpkru
+            sink.put1(0x0F);
+            sink.put1(0x01);
+            match op {
+                PkuOpcode::RDPKRU => sink.put1(0xEE),
+                PkuOpcode::WRPKRU => sink.put1(0xEF),
+            }
         }
     }
 

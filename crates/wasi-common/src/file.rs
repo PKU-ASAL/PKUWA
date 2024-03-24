@@ -48,19 +48,24 @@ pub trait WasiFile: Send + Sync {
     async fn datasync(&mut self) -> Result<(), Error> {
         Ok(())
     }
-
+    fn datasync_sync(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
     async fn sync(&mut self) -> Result<(), Error> {
         Ok(())
     }
-
+    fn sync_sync(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
     async fn get_fdflags(&mut self) -> Result<FdFlags, Error> {
         Ok(FdFlags::empty())
     }
-
     async fn set_fdflags(&mut self, _flags: FdFlags) -> Result<(), Error> {
         Err(Error::badf())
     }
-
+    fn set_fdflags_sync(&mut self, _flags: FdFlags) -> Result<(), Error> {
+        Err(Error::badf())
+    }
     async fn get_filestat(&mut self) -> Result<Filestat, Error> {
         Ok(Filestat {
             device_id: 0,
@@ -77,15 +82,21 @@ pub trait WasiFile: Send + Sync {
     async fn set_filestat_size(&mut self, _size: u64) -> Result<(), Error> {
         Err(Error::badf())
     }
-
+    fn set_filestat_size_sync(&mut self, _size: u64) -> Result<(), Error> {
+        Err(Error::badf())
+    }
     async fn advise(&mut self, _offset: u64, _len: u64, _advice: Advice) -> Result<(), Error> {
         Err(Error::badf())
     }
-
+    fn advise_sync(&mut self, _offset: u64, _len: u64, _advice: Advice) -> Result<(), Error> {
+        Err(Error::badf())
+    }
     async fn allocate(&mut self, _offset: u64, _len: u64) -> Result<(), Error> {
         Err(Error::badf())
     }
-
+    fn allocate_sync(&mut self, _offset: u64, _len: u64) -> Result<(), Error> {
+        Err(Error::badf())
+    }
     async fn set_times(
         &mut self,
         _atime: Option<SystemTimeSpec>,
@@ -100,7 +111,12 @@ pub trait WasiFile: Send + Sync {
     ) -> Result<u64, Error> {
         Err(Error::badf())
     }
-
+    fn read_vectored_sync<'a>(
+        &mut self,
+        _bufs: &mut [std::io::IoSliceMut<'a>],
+    ) -> Result<u64, Error> {
+        Err(Error::badf())
+    }
     async fn read_vectored_at<'a>(
         &mut self,
         _bufs: &mut [std::io::IoSliceMut<'a>],
@@ -108,11 +124,19 @@ pub trait WasiFile: Send + Sync {
     ) -> Result<u64, Error> {
         Err(Error::badf())
     }
-
+    fn read_vectored_at_sync<'a>(
+        &mut self,
+        _bufs: &mut [std::io::IoSliceMut<'a>],
+        _offset: u64,
+    ) -> Result<u64, Error> {
+        Err(Error::badf())
+    }
     async fn write_vectored<'a>(&mut self, _bufs: &[std::io::IoSlice<'a>]) -> Result<u64, Error> {
         Err(Error::badf())
     }
-
+    fn write_vectored_sync<'a>(&mut self, _bufs: &[std::io::IoSlice<'a>]) -> Result<u64, Error> {
+        Err(Error::badf())
+    }
     async fn write_vectored_at<'a>(
         &mut self,
         _bufs: &[std::io::IoSlice<'a>],
@@ -120,11 +144,19 @@ pub trait WasiFile: Send + Sync {
     ) -> Result<u64, Error> {
         Err(Error::badf())
     }
-
+    fn write_vectored_at_sync<'a>(
+        &mut self,
+        _bufs: &[std::io::IoSlice<'a>],
+        _offset: u64,
+    ) -> Result<u64, Error> {
+        Err(Error::badf())
+    }
     async fn seek(&mut self, _pos: std::io::SeekFrom) -> Result<u64, Error> {
         Err(Error::badf())
     }
-
+    fn seek_sync(&mut self, _pos: std::io::SeekFrom) -> Result<u64, Error> {
+        Err(Error::badf())
+    }
     async fn peek(&mut self, _buf: &mut [u8]) -> Result<u64, Error> {
         Err(Error::badf())
     }

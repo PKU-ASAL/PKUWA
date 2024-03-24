@@ -109,6 +109,7 @@ impl<R: Read + Any + Send + Sync> WasiFile for ReadPipe<R> {
         Ok(FileType::Pipe)
     }
     async fn read_vectored<'a>(&mut self, bufs: &mut [io::IoSliceMut<'a>]) -> Result<u64, Error> {
+        println!("read_vectored in pipe.rs");
         let n = self.borrow().read_vectored(bufs)?;
         Ok(n.try_into()?)
     }

@@ -453,6 +453,11 @@
        ;; A memory fence (mfence, lfence or sfence).
        (Fence (kind FenceKind))
 
+       (PKU (op PkuOpcode)
+            (src1 Gpr)
+            (src2 Gpr)
+            (dst WritableGpr))
+
        ;; =========================================
        ;; Meta-instructions generating no code.
 
@@ -753,6 +758,10 @@
 (type CmpOpcode extern
       (enum Cmp
             Test))
+
+(type PkuOpcode extern
+      (enum RDPKRU
+            WRPKRU))
 
 (type RegMemImm extern
       (enum
@@ -1383,6 +1392,9 @@
 (extern extractor is_single_register_type is_single_register_type)
 
 ;;;; Helpers for Querying Enabled ISA Extensions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(decl use_pkru (bool) Type)
+(extern extractor infallible use_pkru use_pkru)
 
 (decl avx512vl_enabled (bool) Type)
 (extern extractor infallible avx512vl_enabled avx512vl_enabled)
@@ -3890,3 +3902,17 @@
 
 (decl libcall_3 (LibCall Reg Reg Reg) Reg)
 (extern constructor libcall_3 libcall_3)
+
+;; Helper for creating `rdpkru` instructions.
+(decl rdpkru (Gpr Gpr) Gpr)
+(rule (rdpkru src1 src2)
+      (let ((dst WritableGpr (temp_writable_gpr))
+            (_ Unit (emit (MInst.PKU (PkuOpcode.RDPKRU) src1 src2 dst))))
+        dst))
+
+;; Helper for creating `wrpkru` instructions.
+(decl wrpkru (Gpr Gpr) Gpr)
+(rule (wrpkru src1 src2)
+      (let ((dst WritableGpr (temp_writable_gpr))
+            (_ Unit (emit (MInst.PKU (PkuOpcode.WRPKRU) src1 src2 dst))))
+        dst))

@@ -67,7 +67,8 @@ pub mod snapshots {
             // the `WASI_ROOT` env variable, which is set in wasi-common's `build.rs`.
             witx: ["$WASI_ROOT/phases/snapshot/witx/wasi_snapshot_preview1.witx"],
             errors: { errno => Error },
-            $async_mode: *
+            // $async_mode: *
+            $async_mode: {wasi_snapshot_preview1::fd_fdstat_get, wasi_snapshot_preview1::fd_filestat_get, wasi_snapshot_preview1::fd_filestat_set_times, wasi_snapshot_preview1::fd_readdir, wasi_snapshot_preview1::path_create_directory, wasi_snapshot_preview1::path_filestat_get, wasi_snapshot_preview1::path_filestat_set_times, wasi_snapshot_preview1::path_link, wasi_snapshot_preview1::path_open, wasi_snapshot_preview1::path_readlink, wasi_snapshot_preview1::path_remove_directory, wasi_snapshot_preview1::path_rename, wasi_snapshot_preview1::path_symlink, wasi_snapshot_preview1::path_unlink_file, wasi_snapshot_preview1::poll_oneoff, wasi_snapshot_preview1::sched_yield, wasi_snapshot_preview1::sock_accept, wasi_snapshot_preview1::sock_recv, wasi_snapshot_preview1::sock_send, wasi_snapshot_preview1::sock_shutdown}
         });
     }
     pub mod preview_0 {

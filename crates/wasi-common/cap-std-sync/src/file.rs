@@ -40,7 +40,15 @@ impl WasiFile for File {
         self.0.sync_data()?;
         Ok(())
     }
+    fn datasync_sync(&mut self) -> Result<(), Error> {
+        self.0.sync_data()?;
+        Ok(())
+    }
     async fn sync(&mut self) -> Result<(), Error> {
+        self.0.sync_all()?;
+        Ok(())
+    }
+    fn sync_sync(&mut self) -> Result<(), Error> {
         self.0.sync_all()?;
         Ok(())
     }
@@ -53,6 +61,18 @@ impl WasiFile for File {
         Ok(fdflags)
     }
     async fn set_fdflags(&mut self, fdflags: FdFlags) -> Result<(), Error> {
+        if fdflags.intersects(
+            wasi_common::file::FdFlags::DSYNC
+                | wasi_common::file::FdFlags::SYNC
+                | wasi_common::file::FdFlags::RSYNC,
+        ) {
+            return Err(Error::invalid_argument().context("cannot set DSYNC, SYNC, or RSYNC flag"));
+        }
+        let set_fd_flags = self.0.new_set_fd_flags(to_sysif_fdflags(fdflags))?;
+        self.0.set_fd_flags(set_fd_flags)?;
+        Ok(())
+    }
+    fn set_fdflags_sync(&mut self, fdflags: FdFlags) -> Result<(), Error> {
         if fdflags.intersects(
             wasi_common::file::FdFlags::DSYNC
                 | wasi_common::file::FdFlags::SYNC
@@ -81,11 +101,23 @@ impl WasiFile for File {
         self.0.set_len(size)?;
         Ok(())
     }
+    fn set_filestat_size_sync(&mut self, size: u64) -> Result<(), Error> {
+        self.0.set_len(size)?;
+        Ok(())
+    }
     async fn advise(&mut self, offset: u64, len: u64, advice: Advice) -> Result<(), Error> {
         self.0.advise(offset, len, convert_advice(advice))?;
         Ok(())
     }
+    fn advise_sync(&mut self, offset: u64, len: u64, advice: Advice) -> Result<(), Error> {
+        self.0.advise(offset, len, convert_advice(advice))?;
+        Ok(())
+    }
     async fn allocate(&mut self, offset: u64, len: u64) -> Result<(), Error> {
+        self.0.allocate(offset, len)?;
+        Ok(())
+    }
+    fn allocate_sync(&mut self, offset: u64, len: u64) -> Result<(), Error> {
         self.0.allocate(offset, len)?;
         Ok(())
     }
@@ -102,7 +134,19 @@ impl WasiFile for File {
         let n = self.0.read_vectored(bufs)?;
         Ok(n.try_into()?)
     }
+    fn read_vectored_sync<'a>(&mut self, bufs: &mut [io::IoSliceMut<'a>]) -> Result<u64, Error> {
+        let n = self.0.read_vectored(bufs)?;
+        Ok(n.try_into()?)
+    }
     async fn read_vectored_at<'a>(
+        &mut self,
+        bufs: &mut [io::IoSliceMut<'a>],
+        offset: u64,
+    ) -> Result<u64, Error> {
+        let n = self.0.read_vectored_at(bufs, offset)?;
+        Ok(n.try_into()?)
+    }
+    fn read_vectored_at_sync<'a>(
         &mut self,
         bufs: &mut [io::IoSliceMut<'a>],
         offset: u64,
@@ -114,6 +158,10 @@ impl WasiFile for File {
         let n = self.0.write_vectored(bufs)?;
         Ok(n.try_into()?)
     }
+    fn write_vectored_sync<'a>(&mut self, bufs: &[io::IoSlice<'a>]) -> Result<u64, Error> {
+        let n = self.0.write_vectored(bufs)?;
+        Ok(n.try_into()?)
+    }
     async fn write_vectored_at<'a>(
         &mut self,
         bufs: &[io::IoSlice<'a>],
@@ -122,7 +170,18 @@ impl WasiFile for File {
         let n = self.0.write_vectored_at(bufs, offset)?;
         Ok(n.try_into()?)
     }
+    fn write_vectored_at_sync<'a>(
+        &mut self,
+        bufs: &[io::IoSlice<'a>],
+        offset: u64,
+    ) -> Result<u64, Error> {
+        let n = self.0.write_vectored_at(bufs, offset)?;
+        Ok(n.try_into()?)
+    }
     async fn seek(&mut self, pos: std::io::SeekFrom) -> Result<u64, Error> {
+        Ok(self.0.seek(pos)?)
+    }
+    fn seek_sync(&mut self, pos: std::io::SeekFrom) -> Result<u64, Error> {
         Ok(self.0.seek(pos)?)
     }
     async fn peek(&mut self, buf: &mut [u8]) -> Result<u64, Error> {

@@ -181,7 +181,7 @@ where
     F: FnMut(*mut VMContext),
 {
     let limits = (*caller).instance().runtime_limits();
-
+    // println!("before catch_traps");
     let result = CallThreadState::new(signal_handler, capture_backtrace, *limits).with(|cx| {
         wasmtime_setjmp(
             cx.jmp_buf.as_ptr(),
@@ -190,7 +190,7 @@ where
             caller,
         )
     });
-
+    // println!("after catch_traps");
     return match result {
         Ok(x) => Ok(x),
         Err((UnwindReason::Trap(reason), backtrace)) => Err(Box::new(Trap { reason, backtrace })),
@@ -201,7 +201,9 @@ where
     where
         F: FnMut(*mut VMContext),
     {
+        // println!("before call_closure");
         unsafe { (*(payload as *mut F))(caller) }
+        // println!("after call_closure");
     }
 }
 

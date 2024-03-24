@@ -358,7 +358,8 @@ where
     T: std::ops::DerefMut<Target = StoreOpaque>,
 {
     pub fn new(mut store: T) -> Self {
-        drop(&mut store);
+        // drop(&mut store);
+        let _ = &mut store;
         #[cfg(debug_assertions)]
         {
             let prev_okay = store.externref_activations_table.set_gc_okay(false);
@@ -703,6 +704,7 @@ impl<T> Store<T> {
     /// returns to host or wasm code as the trap propagates to the root call.
     #[cfg(feature = "async")]
     pub fn call_hook_async(&mut self, hook: impl CallHookHandler<T> + Send + Sync + 'static) {
+        // println!("store call_hook_async");
         self.inner.call_hook = Some(CallHookInner::Async(Box::new(hook)));
     }
 
@@ -724,6 +726,7 @@ impl<T> Store<T> {
         &mut self,
         hook: impl FnMut(&mut T, CallHook) -> Result<(), Trap> + Send + Sync + 'static,
     ) {
+        // println!("store call_hook");
         self.inner.call_hook = Some(CallHookInner::Sync(Box::new(hook)));
     }
 
@@ -1095,6 +1098,7 @@ impl<T> StoreInner<T> {
     }
 
     pub fn call_hook(&mut self, s: CallHook) -> Result<(), Trap> {
+        // println!("StoreInner call_hook");
         match &mut self.call_hook {
             Some(CallHookInner::Sync(hook)) => hook(&mut self.data, s),
 
@@ -1994,7 +1998,8 @@ impl<T> StoreInner<T> {
         {
             self.epoch_deadline_behavior = EpochDeadline::YieldAndExtendDeadline { delta };
         }
-        drop(delta); // suppress warning in non-async build
+        // drop(delta); // suppress warning in non-async build
+        let _ = delta;
     }
 
     fn get_epoch_deadline(&self) -> u64 {

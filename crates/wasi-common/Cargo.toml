@@ -25,6 +25,7 @@ tracing = "0.1.19"
 cap-std = "0.25.3"
 cap-rand = "0.25.3"
 bitflags = "1.2"
+libc = "0.2.60"
 
 [target.'cfg(unix)'.dependencies]
 rustix = { version = "0.35.6", features = ["fs"] }

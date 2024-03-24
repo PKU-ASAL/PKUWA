@@ -1930,6 +1930,30 @@ pub(crate) fn define(
         .operands_out(vec![a]),
     );
 
+    ig.push(
+        Inst::new(
+            "rdmemkey",
+            r#"
+        Reading memory key value.
+        "#,
+            &formats.binary,
+        )
+        .operands_in(vec![x, y])
+        .operands_out(vec![a]),
+    );
+
+    ig.push(
+        Inst::new(
+            "wrmemkey",
+            r#"
+        Writing memory key value.
+        "#,
+            &formats.binary,
+        )
+        .operands_in(vec![x, y])
+        .operands_out(vec![a]),
+    );
+
     let I16or32 = &TypeVar::new(
         "I16or32",
         "A scalar or vector integer type with 16- or 32-bit numbers",

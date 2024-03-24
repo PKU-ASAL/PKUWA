@@ -138,6 +138,8 @@ impl Inst {
             | Inst::XmmRmREvex3 { op, .. } => op.available_from(),
 
             Inst::XmmRmRVex { op, .. } => op.available_from(),
+
+            Inst::PKU { op, .. } => op.available_from(),
         }
     }
 }
@@ -1616,6 +1618,16 @@ impl PrettyPrint for Inst {
                 let reg = pretty_print_reg(*reg, 8, allocs);
                 format!("dummy_use {}", reg)
             }
+
+            Inst::PKU {
+                op,
+                src1: _,
+                src2: _,
+                dst: _,
+            } => match op {
+                PkuOpcode::RDPKRU => "rdpkru".to_string(),
+                PkuOpcode::WRPKRU => "wrpkru".to_string(),
+            },
         }
     }
 }
@@ -2106,6 +2118,24 @@ fn x64_get_operands<F: Fn(VReg) -> VReg>(inst: &Inst, collector: &mut OperandCol
         Inst::DummyUse { reg } => {
             collector.reg_use(*reg);
         }
+
+        Inst::PKU {
+            op,
+            src1,
+            src2,
+            dst,
+        } => match op {
+            PkuOpcode::RDPKRU => {
+                collector.reg_fixed_use(src1.to_reg(), regs::rcx());
+                collector.reg_fixed_use(src2.to_reg(), regs::rdx());
+                collector.reg_fixed_def(dst.to_writable_reg(), regs::rax());
+            }
+            PkuOpcode::WRPKRU => {
+                collector.reg_fixed_use(src1.to_reg(), regs::rax());
+                collector.reg_fixed_use(src2.to_reg(), regs::rdx());
+                collector.reg_def(dst.to_writable_reg());
+            }
+        },
     }
 }
 

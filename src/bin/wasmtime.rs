@@ -9,6 +9,11 @@ use wasmtime_cli::commands::{
     CompileCommand, ConfigCommand, RunCommand, SettingsCommand, WastCommand,
 };
 
+// use dlmalloc::GlobalDlmalloc;
+
+// #[global_allocator]
+// static GLOBAL: GlobalDlmalloc = GlobalDlmalloc;
+
 /// Wasmtime WebAssembly Runtime
 #[derive(Parser)]
 #[clap(

@@ -119,6 +119,9 @@ pub fn builder_with_options(infer_native_flags: bool) -> Result<isa::Builder, &'
         if std::is_x86_feature_detected!("lzcnt") {
             isa_builder.enable("has_lzcnt").unwrap();
         }
+        if std::is_x86_feature_detected!("xsaves") {
+            isa_builder.enable("has_pkru").unwrap();
+        }
     }
 
     #[cfg(target_arch = "aarch64")]
@@ -166,8 +169,8 @@ pub fn builder_with_options(infer_native_flags: bool) -> Result<isa::Builder, &'
     }
 
     // squelch warnings about unused mut/variables on some platforms.
-    drop(&mut isa_builder);
-    drop(infer_native_flags);
+    // drop(&mut isa_builder);
+    // drop(infer_native_flags);
 
     Ok(isa_builder)
 }

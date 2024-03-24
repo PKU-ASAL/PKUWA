@@ -800,6 +800,7 @@ pub(crate) enum InstructionSet {
     AVX512F,
     AVX512VBMI,
     AVX512VL,
+    PKU,
 }
 
 /// Some SSE operations requiring 2 operands r/m and r.
@@ -1843,4 +1844,34 @@ pub enum FenceKind {
     LFence,
     /// `sfence` instruction ("Store Fence")
     SFence,
+}
+
+#[derive(Clone, PartialEq)]
+pub enum PkuOpcode {
+    RDPKRU,
+    WRPKRU,
+}
+
+impl PkuOpcode {
+    /// Which `InstructionSet`s support the opcode?
+    pub(crate) fn available_from(&self) -> SmallVec<[InstructionSet; 2]> {
+        match self {
+            PkuOpcode::RDPKRU | PkuOpcode::WRPKRU => smallvec![InstructionSet::PKU],
+        }
+    }
+}
+
+impl fmt::Debug for PkuOpcode {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PkuOpcode::RDPKRU => write!(fmt, "rdpkru"),
+            PkuOpcode::WRPKRU => write!(fmt, "wrpkru"),
+        }
+    }
+}
+
+impl fmt::Display for PkuOpcode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
 }

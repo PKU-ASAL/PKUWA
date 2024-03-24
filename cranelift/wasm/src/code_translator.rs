@@ -2019,6 +2019,15 @@ pub fn translate_operator<FE: FuncEnvironment + ?Sized>(
         | Operator::F64x2RelaxedMax => {
             return Err(wasm_unsupported!("proposed relaxed-simd operator {:?}", op));
         }
+
+        Operator::Rdpkru => {
+            let (arg1, arg2) = state.pop2();
+            state.push1(builder.ins().rdmemkey(arg1, arg2));
+        }
+        Operator::Wrpkru => {
+            let (arg1, arg2) = state.pop2();
+            state.push1(builder.ins().wrmemkey(arg1, arg2));
+        }
     };
     Ok(())
 }

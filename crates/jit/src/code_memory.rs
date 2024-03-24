@@ -90,7 +90,7 @@ impl CodeMemory {
     pub fn publish(&mut self, enable_branch_protection: bool) -> Result<Publish<'_>> {
         assert!(!self.published);
         self.published = true;
-
+        // println!("JIT publish");
         let mut ret = Publish {
             obj: File::parse(&self.mmap[..])
                 .with_context(|| "failed to parse internal compilation artifact")?,

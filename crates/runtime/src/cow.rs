@@ -116,6 +116,10 @@ impl MemoryImage {
             let end = start + mmap.len();
             let data_start = data.as_ptr() as usize;
             let data_end = data_start + data.len();
+            // println!(
+            //     "MemoryImage new data_start: 0x{:x}, data_end: 0x{:x}",
+            //     data_start, data_end
+            // );
             assert!(start <= data_start && data_end <= end);
             assert_eq!((start as u32) % page_size, 0);
             assert_eq!((data_start as u32) % page_size, 0);
@@ -456,7 +460,19 @@ impl MemoryImageSlot {
                     )
                     .map_err(|e| InstantiationError::Resource(e.into()))?;
                     assert_eq!(ptr as usize, self.base + image.linear_memory_offset);
+                    // let start = image.linear_memory_offset;
+                    // let end = start + 4096;
+                    // let result =
+                    //     self.set_protection(start..end, rustix::mm::MprotectFlags::empty());
+                    // match result {
+                    //     Ok(_) => {}
+                    //     Err(_) => {}
+                    // }
                 }
+                // println!(
+                //     "instantiate linear_memory_offset: {}, len: {}",
+                //     image.linear_memory_offset, image.len
+                // );
             }
         }
 

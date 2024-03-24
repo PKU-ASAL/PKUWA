@@ -408,6 +408,7 @@ impl Instance {
     /// instantiating a module faster, but also means this method requires a
     /// mutable context.
     pub fn get_export(&self, mut store: impl AsContextMut, name: &str) -> Option<Extern> {
+        // println!("Instance get_export {name}");
         self._get_export(store.as_context_mut().0, name)
     }
 

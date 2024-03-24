@@ -1193,6 +1193,9 @@ where
         Opcode::GetFramePointer => unimplemented!("GetFramePointer"),
         Opcode::GetStackPointer => unimplemented!("GetStackPointer"),
         Opcode::GetReturnAddress => unimplemented!("GetReturnAddress"),
+        Opcode::Rdmemkey | Opcode::Wrmemkey => {
+            unimplemented!("memory protection key");
+        }
     })
 }
 

@@ -257,6 +257,7 @@ impl ModuleTranslation<'_> {
                     info.min_addr = info.min_addr.min(init.offset);
                     info.max_addr = info.max_addr.max(init.offset + data_len);
                     info.segments.push((idx, init.clone()));
+                    // println!("data_len: {}, offset: {}, max_addr: {}, min_addr: {}", data_len, init.offset, info.max_addr, info.min_addr);
                 }
                 idx += 1;
                 true

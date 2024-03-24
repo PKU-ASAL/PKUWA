@@ -43,6 +43,7 @@ mod mmap_vec;
 mod table;
 mod traphandlers;
 mod vmcontext;
+mod pku;
 
 pub mod debug_builtins;
 pub mod libcalls;
@@ -75,6 +76,7 @@ pub use crate::vmcontext::{
     VMOpaqueContext, VMRuntimeLimits, VMSharedSignatureIndex, VMTableDefinition, VMTableImport,
     VMTrampoline, ValRaw,
 };
+pub use crate::pku::Pku;
 
 mod module_id;
 pub use module_id::{CompiledModuleId, CompiledModuleIdAllocator};

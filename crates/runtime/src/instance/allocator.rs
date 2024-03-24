@@ -132,7 +132,8 @@ pub enum FiberStackError {
 pub unsafe trait InstanceAllocator: Send + Sync {
     /// Validates that a module is supported by the allocator.
     fn validate(&self, module: &Module) -> Result<()> {
-        drop(module);
+        // drop(module);
+        let _ = module;
         Ok(())
     }
 
@@ -140,7 +141,8 @@ pub unsafe trait InstanceAllocator: Send + Sync {
     ///
     /// This method allows the instance allocator control over tunables passed to a `wasmtime_jit::Compiler`.
     fn adjust_tunables(&self, tunables: &mut wasmtime_environ::Tunables) {
-        drop(tunables);
+        // drop(tunables);
+        let _ = tunables;
     }
 
     /// Allocates an instance for the given allocation request.
@@ -436,7 +438,8 @@ pub struct OnDemandInstanceAllocator {
 impl OnDemandInstanceAllocator {
     /// Creates a new on-demand instance allocator.
     pub fn new(mem_creator: Option<Arc<dyn RuntimeMemoryCreator>>, stack_size: usize) -> Self {
-        drop(stack_size); // suppress unused warnings w/o async feature
+        // drop(stack_size); // suppress unused warnings w/o async feature
+        let _ = stack_size;
         Self {
             mem_creator,
             #[cfg(feature = "async")]

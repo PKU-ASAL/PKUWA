@@ -1455,6 +1455,7 @@ impl<'module_environment> cranelift_wasm::FuncEnvironment for FuncEnvironment<'m
             global_type: pointer_type,
             readonly: readonly_base,
         });
+        // println!("base: {}, base_offset: {}", ptr.get_number(), base_offset);
         Ok(func.create_heap(ir::HeapData {
             base: heap_base,
             min_size: 0.into(),
