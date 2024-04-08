@@ -1666,6 +1666,16 @@ impl<T> Caller<'_, T> {
         }
     }
 
+    /// help function for get store
+    pub fn get_store(&self) -> *mut dyn wasmtime_runtime::Store {
+        self.caller.store()
+    }
+
+    /// help function for get InstanceHandle
+    pub fn get_caller(&self) -> *mut VMContext {
+        self.caller.vmctx_ptr()
+    }
+
     /// Looks up an export from the caller's module by the `name` given.
     ///
     /// Note that when accessing and calling exported functions, one should

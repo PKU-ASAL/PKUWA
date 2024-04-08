@@ -36,6 +36,13 @@ impl<'a, T> StoreContextMut<'a, T> {
     ) -> StoreContextMut<'a, T> {
         StoreContextMut(&mut *(store as *mut StoreInner<T>))
     }
+
+    /// help function for get store instance
+    pub unsafe fn lhw_from_raw(
+        store: *mut dyn wasmtime_runtime::Store,
+    ) -> StoreContextMut<'a, T> {
+        StoreContextMut(&mut *(store as *mut StoreInner<T>))
+    }
 }
 
 /// A trait used to get shared access to a [`Store`] in Wasmtime.
