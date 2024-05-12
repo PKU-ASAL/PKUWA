@@ -21,29 +21,31 @@ unsigned char g_initialized = 0;
 
 typedef struct s_mprotect
 {
-    void*        addr;
-    size_t       len;
-    int          prot;
-    PKUKey       pkey;
-    bool         used;
-    const char*  name;
-    int          mmap_flags;
-    int          mmap_fd;
+    void *addr;
+    size_t len;
+    int prot;
+    PKUKey pkey;
+    bool used;
+    const char *name;
+    int mmap_flags;
+    int mmap_fd;
 } s_mprotect;
 
 #define NUM_MPROTECT_RANGES 4096
 
 typedef struct PKUData
 {
-    int        initialized;
-    size_t     stacksize;
-    void       (*UserHandler)(void*);
-    PKUKey     domains[NUM_DOMAINS];
+    int initialized;
+    size_t stacksize;
+    void (*UserHandler)(void *);
+    PKUKey domains[NUM_DOMAINS];
     s_mprotect ranges[NUM_MPROTECT_RANGES];
-    size_t     ranges_max_used;
+    size_t ranges_max_used;
 } PKUData;
 
-PKUData g_data = {0,};
+PKUData g_data = {
+    0,
+};
 
 static bool g_LazyFree = false;
 
@@ -54,7 +56,7 @@ static bool inline DomainExists(int did)
 
 int DoInit(int flags)
 {
-    if(g_data.initialized)
+    if (g_data.initialized)
     {
         printf("DoInit: PKU already initialized\n");
         errno = EACCES;
@@ -63,13 +65,13 @@ int DoInit(int flags)
 
     // verify page size
     long int pagesize = sysconf(_SC_PAGESIZE);
-    if(-1 == pagesize)
+    if (-1 == pagesize)
     {
         printf("DoInit: sysconf(_SC_PAGESIZE) failed\n");
         errno = EACCES;
         goto error;
     }
-    if(PAGESIZEPKU != pagesize)
+    if (PAGESIZEPKU != pagesize)
     {
         printf("DoInit: pagesize does not match. It should be %d but it is %ld", PAGESIZEPKU, pagesize);
         errno = EACCES;
@@ -88,14 +90,15 @@ int PKUInit(int flags)
     int ret = -1;
     int DoInitFinished = 0;
 
-    if(g_initialized)
+    if (g_initialized)
     {
         ret = 0;
         return ret;
     }
 
     ret = DoInit(flags);
-    if (-1 == ret) {
+    if (-1 == ret)
+    {
         goto error;
     }
     DoInitFinished = 1;
@@ -103,9 +106,9 @@ int PKUInit(int flags)
     return ret;
 
 error:
-    if(DoInitFinished) 
+    if (DoInitFinished)
     {
-        if(PKUDeinit() != 0)
+        if (PKUDeinit() != 0)
         {
             printf("PKUDeinit failed\n");
         }
@@ -120,22 +123,22 @@ int PKUDeinit(void)
 
 int PKUDomainFree(int domain)
 {
-    if(g_data.initialized == 0)
+    if (g_data.initialized == 0)
     {
         printf("Not initialized\n");
         return -1;
     }
 
-    if(!DomainExists(domain))
+    if (!DomainExists(domain))
     {
         printf("Invalid domain\n");
         errno = EINVAL;
         return -1;
     }
 
-    for(size_t did = 0; did < NUM_DOMAINS; ++did)
+    for (size_t did = 0; did < NUM_DOMAINS; ++did)
     {
-        if(g_data.domains[did].used)
+        if (g_data.domains[did].used)
         {
             printf("cannot free domains\n");
             errno = EINVAL;
@@ -143,15 +146,15 @@ int PKUDomainFree(int domain)
         }
     }
 
-    for(size_t rid = 0; rid < NUM_MPROTECT_RANGES; ++rid)
+    for (size_t rid = 0; rid < NUM_MPROTECT_RANGES; ++rid)
     {
-        if(g_data.ranges[rid].used)
+        if (g_data.ranges[rid].used)
         {
             g_data.UserHandler(g_data.ranges[rid].addr);
         }
     }
 
-    PKUKey* dom = &(g_data.domains[domain]);
+    PKUKey *dom = &(g_data.domains[domain]);
     dom->pkey = 0;
     dom->perm = 0;
     dom->used = 0;
@@ -161,7 +164,7 @@ int PKUDomainFree(int domain)
 
 int PKUPkeyAlloc(unsigned int flags, unsigned int AccessRights)
 {
-    if(AccessRights & ~(unsigned int)(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE))
+    if (AccessRights & ~(unsigned int)(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE))
     {
         printf("PKUPkeyAlloc invalid flags or access rights\n");
         errno = EINVAL;
@@ -176,9 +179,9 @@ int PKUPkeyFree(int pkey)
 {
     int ret;
 
-    for(size_t rid = 0; rid < NUM_DOMAINS; ++rid)
+    for (size_t rid = 0; rid < NUM_DOMAINS; ++rid)
     {
-        if(g_data.ranges[rid].used)
+        if (g_data.ranges[rid].used)
         {
             printf("range[%zu] addr %p len %zu (%s) still uses", rid, g_data.ranges[rid].addr, g_data.ranges[rid].len, g_data.ranges[rid].name);
             errno = EPERM;
@@ -186,12 +189,12 @@ int PKUPkeyFree(int pkey)
         }
     }
 
-    for(size_t did = 0; did < NUM_DOMAINS; ++did)
+    for (size_t did = 0; did < NUM_DOMAINS; ++did)
     {
-        if(g_data.domains[did].used)
+        if (g_data.domains[did].used)
         {
-            PKUKey* domain = &g_data.domains[did];
-            if(domain->used)
+            PKUKey *domain = &g_data.domains[did];
+            if (domain->used)
             {
                 domain->used = false;
                 printf("revoked domain[%zu]\n", did);
@@ -199,7 +202,7 @@ int PKUPkeyFree(int pkey)
         }
     }
 
-    if(g_LazyFree)
+    if (g_LazyFree)
     {
         ret = 0;
     }
@@ -211,25 +214,25 @@ int PKUPkeyFree(int pkey)
     return ret;
 }
 
-int DomainProtect(void* addr, size_t length, unsigned int pkey)
+int DomainProtect(void *addr, size_t length, unsigned int pkey)
 {
     unsigned char buf[12] = {0x01, 0x20};
     size_t temp = (size_t)addr;
-    for(int i = 3; i >= 0; --i)
+    for (int i = 3; i >= 0; --i)
     {
-        buf[i+2] = temp & 0xff;
+        buf[i + 2] = temp & 0xff;
         temp >>= 8;
     }
     temp = length;
-    for(int i = 3; i >= 0; --i)
+    for (int i = 3; i >= 0; --i)
     {
-        buf[i+6] = temp & 0xff;
+        buf[i + 6] = temp & 0xff;
         temp >>= 8;
     }
     buf[10] = 3;
     buf[11] = pkey;
     int error = WASICALL(buf, sizeof(buf));
-    if(error != 0)
+    if (error != 0)
     {
         perror("DomainProtect failed");
     }
@@ -241,12 +244,12 @@ int PKUCreateDomain(unsigned int flags)
     // PKU_KEY_* flags
     unsigned char buf[12] = {0x01, 0x21};
     int error = WASICALL(buf, sizeof(buf));
-    if(error != 0)
+    if (error != 0)
     {
         perror("PKUCreateDomain failed");
         return -1;
     }
-    if(buf[2] >= 16)
+    if (buf[2] >= 16)
     {
         return 0;
     }
@@ -260,16 +263,16 @@ int PKUCreateDomain(unsigned int flags)
 
 int RegisterPKUCall(int did, pFunc entry)
 {
-    if(!DomainExists(did))
+    if (!DomainExists(did))
     {
         perror("Domain does not exist");
         return -EINVAL;
     }
 
     int PKUCallID = 0;
-    for(; PKUCallID < NUM_REGISTERED_PKUCALLS; ++PKUCallID)
+    for (; PKUCallID < NUM_REGISTERED_PKUCALLS; ++PKUCallID)
     {
-        if(!RegisteredPKUCalls[PKUCallID].entry)
+        if (!RegisteredPKUCalls[PKUCallID].entry)
         {
             // We found an empty ecall slot
             break;
@@ -277,20 +280,20 @@ int RegisterPKUCall(int did, pFunc entry)
     }
 
     // check for valid id
-    if(PKUCallID < 0 || PKUCallID >= NUM_REGISTERED_PKUCALLS)
+    if (PKUCallID < 0 || PKUCallID >= NUM_REGISTERED_PKUCALLS)
     {
         perror("pku call id is out of range");
         return -EACCES;
     }
 
-    if(RegisteredPKUCalls[PKUCallID].entry != 0)
+    if (RegisteredPKUCalls[PKUCallID].entry != 0)
     {
         perror("pku call id already used");
         return -EACCES;
     }
 
     // register ecall
-    RegisteredPKUCalls[PKUCallID].did   = did;
+    RegisteredPKUCalls[PKUCallID].did = did;
     RegisteredPKUCalls[PKUCallID].entry = entry;
     return PKUCallID;
 }
@@ -299,14 +302,14 @@ int ReadPKRU()
 {
     unsigned char buf[12] = {0x0F, 0x01, 0xEE};
     int error = WASICALL(buf, sizeof(buf));
-    if(error != 0)
+    if (error != 0)
     {
         perror("ReadPKRU failed");
         return -1;
     }
 
     int pkru = 0;
-    for(int i = 3; i < 7; ++i)
+    for (int i = 3; i < 7; ++i)
     {
         pkru <<= 8;
         pkru += buf[i];
@@ -318,13 +321,13 @@ static int WritePKRU(unsigned int pkru)
 {
     unsigned char buf[12] = {0x0F, 0x01, 0xEF};
     unsigned int temp = pkru;
-    for(int i = 3; i >= 0; --i)
+    for (int i = 3; i >= 0; --i)
     {
-        buf[i+3] = temp & 0xff;
+        buf[i + 3] = temp & 0xff;
         temp >>= 8;
     }
     int error = WASICALL(buf, sizeof(buf));
-    if(error != 0)
+    if (error != 0)
     {
         perror("WritePkru failed");
         return -1;
@@ -349,11 +352,11 @@ static int SetPkey(pkey_t pkey, unsigned int prot)
     int pkey_shift = pkey * 2;
     int new_pkru_bits = 0;
 
-    if(prot & PKEY_DISABLE_ACCESS)
+    if (prot & PKEY_DISABLE_ACCESS)
     {
         new_pkru_bits |= PKEY_DISABLE_ACCESS;
     }
-    if(prot & PKEY_DISABLE_WRITE)
+    if (prot & PKEY_DISABLE_WRITE)
     {
         new_pkru_bits |= PKEY_DISABLE_WRITE;
     }
@@ -363,7 +366,7 @@ static int SetPkey(pkey_t pkey, unsigned int prot)
 
     /* Get old PKRU and mask off any old bits in place: */
     int old_pkru = rdpkru();
-    if(old_pkru == 0)
+    if (old_pkru == 0)
     {
         old_pkru = 0x55555554;
     }
@@ -377,19 +380,19 @@ static int SetPkey(pkey_t pkey, unsigned int prot)
 int PKUDomainAssignPkey(int did, int pkey, int flags, int AccessRights)
 {
     // set pkey prot
-    if(!DomainExists(GetCurrentDid()))
+    if (!DomainExists(GetCurrentDid()))
     {
         perror("PKUDomainAssignPkey GetCurrentDid does not exist");
         return -EINVAL;
     }
 
-    if(!DomainExists(did))
+    if (!DomainExists(did))
     {
         perror("PKUDomainAssignPkey target domain does not exist");
         return -EINVAL;
     }
 
-    if(AccessRights & ~(unsigned int)(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE))
+    if (AccessRights & ~(unsigned int)(PKEY_DISABLE_ACCESS | PKEY_DISABLE_WRITE))
     {
         perror("PKUDomainAssignPkey invalid AccessRights");
         return -EINVAL;
@@ -399,78 +402,78 @@ int PKUDomainAssignPkey(int did, int pkey, int flags, int AccessRights)
     return 0;
 }
 
-int PKUPkeyMprotect(void* addr, size_t len, int prot, int pkey)
+int PKUPkeyMprotect(void *addr, size_t len, int prot, int pkey)
 {
     return PKUMprotect(addr, len, prot);
 }
 
 static size_t GS_MmapMemory = 0;
 
-void* NaiveMmap(size_t bytes)
+void *NaiveMmap(size_t bytes)
 {
     bytes = PAGE_ALIGN(bytes);
     GS_MmapMemory += bytes;
     return PKUMalloc(bytes);
 }
 
-void* PKUMmap(void* addr, size_t length, int prot, int flags, int fd, int offset)
+void *PKUMmap(void *addr, size_t length, int prot, int flags, int fd, int offset)
 {
     unsigned char buf[12] = {0x01, 0x2B};
     size_t temp = (size_t)addr;
-    for(int i = 3; i >= 0; --i)
+    for (int i = 3; i >= 0; --i)
     {
-        buf[i+2] = temp & 0xff;
+        buf[i + 2] = temp & 0xff;
         temp >>= 8;
     }
     temp = length;
-    for(int i = 3; i >= 0; --i)
+    for (int i = 3; i >= 0; --i)
     {
-        buf[i+6] = temp & 0xff;
+        buf[i + 6] = temp & 0xff;
         temp >>= 8;
     }
     buf[10] = prot;
     buf[11] = flags;
     int error = WASICALL(buf, sizeof(buf));
-    if(error != 0)
+    if (error != 0)
     {
         perror("PKUMmap failed");
     }
     temp = 0;
-    for(int i = 2; i < 6; i++)
+    for (int i = 2; i < 6; i++)
     {
         temp <<= 8;
         temp += buf[i];
     }
     size_t len = 0;
-    for(int i = 6; i < 10; i++)
+    for (int i = 6; i < 10; i++)
     {
         len <<= 8;
         len += buf[i];
     }
-    if(len != length)
+    if (len != length)
     {
         temp = 0;
         printf("test\n");
     }
     GS_MmapMemory += len;
-    return (void*)temp;
+    return (void *)temp;
 }
 
-int PKUMunmap(void* addr, size_t len)
+int PKUMunmap(void *addr, size_t len)
 {
     // munmap
     return 0;
 }
 
-static void* MmapAddr = NULL;
+static void *MmapAddr = NULL;
 
-int PKUMprotect(void* addr, size_t len, int prot)
+int PKUMprotect(void *addr, size_t len, int prot)
 {
-    if(addr == NULL && MmapAddr == NULL)
+    if (addr == NULL && MmapAddr == NULL)
     {
         MmapAddr = PKUMmap(NULL, len, prot, 0x2 | 0x20, -1, 0);
     }
-    if(MmapAddr != NULL)
+    if (MmapAddr != NULL)
     {
         DomainProtect(MmapAddr, len, 0);
     }

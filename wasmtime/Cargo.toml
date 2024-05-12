@@ -87,7 +87,7 @@ members = [
   "examples/fib-debug/wasm",
   "examples/wasi/wasm",
   "examples/tokio/wasm",
-  "fuzz",
+  "fuzz", "wce",
 ]
 exclude = [
   'crates/wasi-common/WASI/tools/witx-cli',
