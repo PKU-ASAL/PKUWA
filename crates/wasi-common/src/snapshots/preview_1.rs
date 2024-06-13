@@ -2501,6 +2501,32 @@ impl wasi_snapshot_preview1::WasiSnapshotPreview1 for WasiCtx {
 
         f.sock_shutdown(SdFlags::from(how)).await
     }
+    
+    fn wasi_for_dynlib(&self, mut caller: Caller<'_, Host>,  len: u32, domain: u32, prot: u32) -> Result<(), Error> {
+        let store = get_store().lock().unwrap();
+        let flags = 0;
+        let domain = pkucreatedomain(flags);
+        let pkey = unsafe { libc::syscall(SYS_pkey_alloc, 0, 0) }; // pkey = pkupkeyalloc();
+        if pkey == -1 {
+            println!("error in libc::syscall SYS_pkey_alloc");
+            return Err(Error::invalid_argument().context("pkey alloc fails!"));
+        }
+        setpkey(pkey, prot);
+        let ret = pku_domain_assign_key(domain, pkey, flags, prot);
+        if ret == -1 {
+            return Err(Error::invalid_argument().context("pku domain assign fails!"));
+        }
+        let memory = caller.get_export("memory").unwrap().into_memory().unwrap();
+        let offset = memory.data_size(store);
+        memory.grow_async(&store, len);
+        unsafe{
+            let ret = pku_pkey_mprotect(memory.data_ptr(store).offset(offset), len as usize, prot, flags);
+            if ret == -1 {
+                return Err(Error::invalid_argument().context("pku memory protection fails!"));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl From<types::Advice> for Advice {
