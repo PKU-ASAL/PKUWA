@@ -38,7 +38,7 @@ impl RunTarget {
 }
 
 /// Common command line arguments for run commands.
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 pub struct RunCommon {
     #[command(flatten)]
     pub common: CommonOptions,

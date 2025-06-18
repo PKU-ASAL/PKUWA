@@ -87,6 +87,18 @@ hyper = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
 http-body-util = { workspace = true, optional = true }
 
+lazy_static = { workspace = true }
+# sensors-sys = { workspace = true }
+quick-xml = { workspace = true }
+hidapi = { workspace = true }
+regex = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+libc = { workspace = true }
+bitflags = { workspace = true }
+once_cell = { workspace = true }
+event-listener = { workspace = true }
+
 [target.'cfg(unix)'.dependencies]
 rustix = { workspace = true, features = ["mm", "process"] }
 
@@ -379,6 +391,15 @@ itertools = "0.14.0"
 base64 = "0.22.1"
 termcolor = "1.4.1"
 
+lazy_static = "1.5.0"
+# sensors-sys = "0.2.17"
+quick-xml = { version = "0.37.0", features = ["serialize"] }
+hidapi = "2.6.3"
+regex = "1"
+tracing-opentelemetry = "0.31"
+once_cell = { version = "1.12.0" }
+event-listener = { version = "5.4.0" }
+
 # =============================================================================
 #
 # Features for the Wasmtime CLI executable
@@ -404,6 +425,7 @@ default = [
   "config",
   "completion",
   "objdump",
+  "call",
 
   # On-by-default WASI features
   "wasi-nn",
@@ -520,6 +542,7 @@ objdump = [
   'dep:gimli',
   'pulley-interpreter/disas',
 ]
+call = []
 
 [[test]]
 name = "disas"

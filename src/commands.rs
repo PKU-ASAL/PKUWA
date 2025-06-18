@@ -39,3 +39,11 @@ pub use self::settings::*;
 mod objdump;
 #[cfg(feature = "objdump")]
 pub use self::objdump::*;
+
+#[cfg(feature = "call")]
+mod call;
+#[cfg(feature = "call")]
+pub use self::call::*;
+
+mod sidecar;
+pub(crate) use self::sidecar::*;

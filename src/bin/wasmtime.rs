@@ -89,6 +89,10 @@ enum Subcommand {
     /// Inspect `*.cwasm` files output from Wasmtime
     #[cfg(feature = "objdump")]
     Objdump(wasmtime_cli::commands::ObjdumpCommand),
+
+    /// Runs multiple WebAssembly modules
+    #[cfg(feature = "call")]
+    Call(wasmtime_cli::commands::CallCommand),
 }
 
 impl Wasmtime {
@@ -126,6 +130,9 @@ impl Wasmtime {
 
             #[cfg(feature = "objdump")]
             Subcommand::Objdump(c) => c.execute(),
+
+            #[cfg(feature = "call")]
+            Subcommand::Call(c) => c.execute(),
         }
     }
 }
