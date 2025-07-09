@@ -178,7 +178,6 @@ members = [
   "examples/min-platform/embedding",
   "fuzz",
   "winch/codegen",
-  "shared_memory",
 ]
 exclude = [
   'docs/rust_wasi_markdown_parser',
