@@ -425,7 +425,13 @@ fn pku_sharded_memory(mut caller: Caller<'_, Host>) -> i32 {
                 Ok(p) => {
                     let base = memory.data_ptr(&caller);
                     let ret = base.add(p as usize * PAGE_SIZE);
-                    libc::mremap(SHARED_MEMORY, 0, PAGE_SIZE, libc::MREMAP_FIXED | libc::MREMAP_MAYMOVE, ret);
+                    libc::mremap(
+                        SHARED_MEMORY,
+                        0,
+                        PAGE_SIZE,
+                        libc::MREMAP_FIXED | libc::MREMAP_MAYMOVE,
+                        ret,
+                    );
                     return 0;
                 }
                 Err(e) => {
@@ -435,6 +441,46 @@ fn pku_sharded_memory(mut caller: Caller<'_, Host>) -> i32 {
             }
         }
     }
+}
+
+fn pku_create_shareded_memory(mut caller: Caller<'_, Host>, size: u32) -> i32 {
+    let memory = caller.get_export("memory").unwrap().into_memory().unwrap();
+    const PAGE_SIZE: usize = 4096;
+    let host = caller.data_mut();
+    unsafe {
+        if let Some(ptr) = host.get_shared_memory(0) {
+            let page = memory.grow(&mut caller, size as u64);
+            match page {
+                Ok(p) => {
+                    let base = memory.data_ptr(&caller);
+                    let ret = base.add(p as usize * PAGE_SIZE);
+                    let remaped_ptr = libc::mremap(
+                        ptr,
+                        0,
+                        size as usize * PAGE_SIZE,
+                        libc::MREMAP_FIXED | libc::MREMAP_MAYMOVE,
+                        ret,
+                    );
+                    if remaped_ptr == libc::MAP_FAILED {
+                        println!("pku_shared_memory mremap error");
+                        return -1;
+                    }
+                    return ret as i32;
+                }
+                Err(e) => {
+                    println!("Error in memory.grow function: {e}");
+                    return -1;
+                }
+            }
+        } else {
+            let region = host.create_shared_memory(size as usize).unwrap();
+            region as i32
+        }
+    }
+}
+
+fn pku_access_shared_memory(mut caller: Caller<'_, Host>, region: u32, offset: u32) -> i32 {
+    0
 }
 
 /// Define env function
@@ -470,5 +516,10 @@ pub(crate) fn define_native_function(linker: &mut Linker<Host>) {
         .unwrap();
     linker.func_wrap("env", "PKURecv", pku_recv).unwrap();
     linker.func_wrap("env", "PKUSidecar", pku_sidecar).unwrap();
-    linker.func_wrap("env", "PKUShardedMemory", pku_sharded_memory).unwrap();
+    linker
+        .func_wrap("env", "PKUSharedMemory", pku_sharded_memory)
+        .unwrap();
+    linker
+        .func_wrap("env", "PKUCreateSharedMemory", pku_create_shareded_memory)
+        .unwrap();
 }

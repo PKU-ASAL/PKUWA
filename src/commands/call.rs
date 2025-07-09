@@ -10,10 +10,12 @@ use crate::common::{Profile, RunCommon, RunTarget};
 
 use anyhow::{Context as _, Error, Result, anyhow, bail};
 use clap::Parser;
+use libc::c_void;
+use std::collections::HashMap;
 use std::ffi::OsString;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use wasi_common::sync::{Dir, TcpListener, WasiCtxBuilder, ambient_authority};
 use wasmtime::{Engine, Func, Module, Store, StoreLimits, Val, ValType};
@@ -99,7 +101,7 @@ impl CallCommand {
         }
 
         if self.module_and_args[0] != "module:" {
-            bail!("Usage: `wasmtime run module: <wasm_module> [args...]`");
+            bail!("Usage: `wasmtime call module: <wasm_module> [args...]`");
         }
         let mut start = 0;
         let mut in_args = false;
@@ -1324,6 +1326,8 @@ pub(crate) struct Host {
     // access.
     preview2_ctx: Option<Arc<Mutex<wasmtime_wasi::preview1::WasiP1Ctx>>>,
 
+    shared_memory_manager: Option<Arc<RwLock<SharedMemoryManager>>>,
+
     #[cfg(feature = "wasi-nn")]
     wasi_nn_wit: Option<Arc<wasmtime_wasi_nn::wit::WasiNnCtx>>,
     #[cfg(feature = "wasi-nn")]
@@ -1440,4 +1444,126 @@ fn write_core_dump(
         .write_all(&core_dump)
         .with_context(|| format!("failed to write core dump file at `{path}`"))?;
     Ok(())
+}
+
+#[derive(Default, Debug, Clone)]
+struct SharedMemoryRegion {
+    id: u64,
+    ptr: usize,
+    size: usize,
+}
+
+#[derive(Default, Debug)]
+struct SharedMemoryManager {
+    regions: HashMap<u64, SharedMemoryRegion>,
+    region_nums: u64,
+    total_size: usize,
+}
+
+impl SharedMemoryManager {
+    fn new() -> Self {
+        Self {
+            regions: HashMap::new(),
+            region_nums: 0,
+            total_size: 0,
+        }
+    }
+
+    // Return the region id of the created shared memory region
+    fn create_region(&mut self, size: usize) -> Result<u64, String> {
+        const PAGE_SIZE: usize = 4096;
+        let aligned_size = (size + PAGE_SIZE - 1) & !(PAGE_SIZE - 1);
+
+        unsafe {
+            let ptr = libc::mmap(
+                std::ptr::null_mut(),
+                aligned_size,
+                libc::PROT_READ | libc::PROT_WRITE,
+                libc::MAP_SHARED | libc::MAP_ANONYMOUS,
+                -1,
+                0,
+            );
+            if ptr == libc::MAP_FAILED {
+                return Err("Failed to create shared memory region".to_string());
+            }
+
+            let region_id = self.region_nums;
+            self.region_nums += 1;
+
+            let region = SharedMemoryRegion {
+                id: region_id,
+                ptr: ptr as usize,
+                size: aligned_size,
+            };
+
+            self.regions.insert(region_id, region);
+            self.total_size += aligned_size;
+
+            Ok(region_id)
+        }
+    }
+
+    fn get_region(&mut self, region_id: u64) -> Option<*mut c_void> {
+        if let Some(region) = self.regions.get_mut(&region_id) {
+            Some(region.ptr as *mut c_void)
+        } else {
+            None
+        }
+    }
+
+    fn release_region(&mut self, region_id: u64) -> Result<(), String> {
+        if let Some(region) = self.regions.get_mut(&region_id) {
+            unsafe {
+                libc::munmap(region.ptr as *mut c_void, region.size);
+            }
+            self.total_size -= region.size;
+            self.regions.remove(&region_id);
+            Ok(())
+        } else {
+            Err(format!("Release region {} error!", region_id))
+        }
+    }
+}
+
+impl Host {
+    pub fn create_shared_memory(&mut self, size: usize) -> Result<u64, String> {
+        if let None = self.shared_memory_manager {
+            self.shared_memory_manager = Some(Arc::new(RwLock::new(SharedMemoryManager::new())));
+        }
+
+        let mut manager = self
+            .shared_memory_manager
+            .as_mut()
+            .unwrap()
+            .write()
+            .unwrap();
+        manager.create_region(size)
+    }
+
+    pub fn get_shared_memory(&mut self, region: u64) -> Option<*mut c_void> {
+        if let None = self.shared_memory_manager {
+            self.shared_memory_manager = Some(Arc::new(RwLock::new(SharedMemoryManager::new())));
+            return None;
+        }
+        let mut manager = self
+            .shared_memory_manager
+            .as_ref()
+            .unwrap()
+            .write()
+            .unwrap();
+        manager.get_region(region)
+    }
+
+    pub fn release_shared_memory(&mut self, region: u64) -> Result<(), String> {
+        if let None = self.shared_memory_manager {
+            self.shared_memory_manager = Some(Arc::new(RwLock::new(SharedMemoryManager::new())));
+        }
+        let mut manager = self
+            .shared_memory_manager
+            .as_ref()
+            .unwrap()
+            .write()
+            .unwrap();
+        manager.release_region(region)
+    }
 }
