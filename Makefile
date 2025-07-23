@@ -11,18 +11,22 @@ INCLUDE_PATH =
 AR      = /home/wce/wasm_tools/wasi-sdk-24.0-x86_64-linux/bin/ar
 SYSROOT = --sysroot /home/wce/wasm_tools/wasi-sdk-24.0-x86_64-linux/share/wasi-sysroot
 
-all: main.wasm 
+all: main.wasm main2.wasm
 # main
 
 # main: main.o $(OBJ)
 # 	$(CC) -o $(@) $(^) $(LDFLAGS)
 
 main.wasm: main-wasm.o $(WASMOBJ)
-	cp ./libpku.imports /home/wce/wasm_tools/wasi-sdk-24.0-x86_64-linux/share/wasi-sysroot
+# 	cp ./libpku.imports /home/wce/wasm_tools/wasi-sdk-24.0-x86_64-linux/share/wasi-sysroot
 # 	cp ./libpku.imports /home/wce/wasm_tools/wasi-libc/sysroot/lib/wasm32-wasi
 	$(WASMCC) --target=wasm32-wasi $(SYSROOT) $(<) $(WASMLDFLAGS) -o $(@)
 # $(WASMCC) --target=wasm64-wasi --sysroot /home/lhw/test2/wasi-libc/sysroot $(<) $(WASMLDFLAGS) -o $(@)
 
+main2.wasm: main2-wasm.o $(WASMOBJ)
+# 	cp ./libpku.imports /home/wce/wasm_tools/wasi-sdk-24.0-x86_64-linux/share/wasi-sysroot
+	$(WASMCC) --target=wasm32-wasi $(SYSROOT) $(<) $(WASMLDFLAGS) -o $(@)
+	
 %-wasm.o: %.c
 	$(WASMCC) $(SYSROOT) $(WASMCFLAGS) $(INCLUDE_PATH) -c $(<) -o $(@)
 

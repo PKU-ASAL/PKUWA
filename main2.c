@@ -100,24 +100,22 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <malloc.h>
-
+#define PAGE_SIZE 4096
 // __attribute__((weak)) int PKUSharedMemory(void)
 // {
 //     printf("PKUShardedMemory not available in native mode\n");
 //     return 0;
 // }
-#define PAGE_SIZE 4096
-int __imported_wasi_snapshot_preview1_PKUCreateSharedMemory(unsigned int size)
-    __attribute__((__import_module__("env"), __import_name__("PKUCreateSharedMemory")));
-
+int __imported_wasi_snapshot_preview1_PKUQuerySharedMemory(unsigned int region)
+    __attribute__((__import_module__("env"), __import_name__("PKUQuerySharedMemory")));
 int __imported_wasi_snapshot_preview1_PKULinkSharedMemory(unsigned int region)
     __attribute__((__import_module__("env"), __import_name__("PKULinkSharedMemory")));
-
-int __imported_wasi_snapshot_preview1_PKUWriteSharedMemory(unsigned int region, unsigned int offset, int value)
-    __attribute__((__import_module__("env"), __import_name__("PKUWriteSharedMemoryInt")));
-int __imported_wasi_snapshot_preview1_PKUWriteSharedMemoryBuffer(unsigned int region, unsigned int offset, unsigned int buf, unsigned int len)
-    __attribute__((__import_module__("env"), __import_name__("PKUWriteSharedMemoryBuffer")));
+int __imported_wasi_snapshot_preview1_PKUReadSharedMemory(unsigned int region, unsigned int offset)
+    __attribute__((__import_module__("env"), __import_name__("PKUReadSharedMemoryInt")));
+int __imported_wasi_snapshot_preview1_PKUReadSharedMemoryBuffer(unsigned int region, unsigned int offset, unsigned int buf, unsigned int len)
+    __attribute__((__import_module__("env"), __import_name__("PKUReadSharedMemoryBuffer")));
 // int main(void)
 // {
 //     // extern void PKUNodeExporter(int);
@@ -137,20 +135,29 @@ int __imported_wasi_snapshot_preview1_PKUWriteSharedMemoryBuffer(unsigned int re
 int main(void)
 {
     printf("--- Test Start ---\n");
-    int ptr1 = __imported_wasi_snapshot_preview1_PKUCreateSharedMemory(4);
-    printf("First call returned: %d\n", ptr1);
-
-    int ptr2 = __imported_wasi_snapshot_preview1_PKULinkSharedMemory(ptr1);
-    printf("Second call returned: %d\n", ptr2);
-    int p = __imported_wasi_snapshot_preview1_PKUWriteSharedMemory(0, 4096, 114514);
-    printf("Write memory region: %d\n", p);
-    int *p2 = malloc((PAGE_SIZE) * sizeof(int));
-    for (int i = 0; i < PAGE_SIZE / sizeof(int); i++)
+    sleep(1);
+    // 第一次调用，应该返回一个有效的宿主机内存地址
+    int flag = __imported_wasi_snapshot_preview1_PKUQuerySharedMemory(0);
+    if (flag == 0)
     {
-        p2[i] = i + 1;
+        printf("Shared memory region exists.\n");
     }
-    __imported_wasi_snapshot_preview1_PKUWriteSharedMemoryBuffer(0, PAGE_SIZE, (unsigned int)p2, PAGE_SIZE);
+    else
+    {
+        printf("Shared memory region does not exist.\n");
+    }
+    int ptr = __imported_wasi_snapshot_preview1_PKULinkSharedMemory(0);
+    printf("First call returned: %d\n", ptr);
+    int p = __imported_wasi_snapshot_preview1_PKUReadSharedMemory(0, 4096);
+    printf("Pointer address: %d\n", p);
+    int *p2 = malloc((PAGE_SIZE) * sizeof(int));
+    __imported_wasi_snapshot_preview1_PKUReadSharedMemoryBuffer(0, PAGE_SIZE, (unsigned int)p2, PAGE_SIZE);
+    for (int i = 0; i < 20; i++)
+    {
+        printf("Value at p2[%d]: %d\n", i, p2[i]);
+    }
     free(p2);
+    printf("--- Test End ---\n");
     return 0;
 }
 

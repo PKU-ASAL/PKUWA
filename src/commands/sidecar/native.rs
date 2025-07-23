@@ -444,43 +444,256 @@ fn pku_sharded_memory(mut caller: Caller<'_, Host>) -> i32 {
 }
 
 fn pku_create_shareded_memory(mut caller: Caller<'_, Host>, size: u32) -> i32 {
+    println!("First time!");
+    let host = caller.data_mut();
+    let region = host.create_shared_memory(size as usize).unwrap();
+    region as i32
+}
+
+fn pku_link_shared_memrory(mut caller: Caller<'_, Host>, region: u32) -> i32 {
     let memory = caller.get_export("memory").unwrap().into_memory().unwrap();
     const PAGE_SIZE: usize = 4096;
     let host = caller.data_mut();
     unsafe {
-        if let Some(ptr) = host.get_shared_memory(0) {
-            let page = memory.grow(&mut caller, size as u64);
-            match page {
-                Ok(p) => {
-                    let base = memory.data_ptr(&caller);
-                    let ret = base.add(p as usize * PAGE_SIZE);
-                    let remaped_ptr = libc::mremap(
-                        ptr,
-                        0,
-                        size as usize * PAGE_SIZE,
-                        libc::MREMAP_FIXED | libc::MREMAP_MAYMOVE,
-                        ret,
-                    );
-                    if remaped_ptr == libc::MAP_FAILED {
-                        println!("pku_shared_memory mremap error");
-                        return -1;
-                    }
-                    return ret as i32;
-                }
+        if let Some(ptr) = host.get_shared_memory(region as u64) {
+            let size = host.get_shared_memory_region_size(region as u64);
+            if let None = size {
+                println!("Shared memory region {} not found", region);
+            }
+            let size = size.unwrap();
+
+            let p = match memory.grow(&mut caller, size as u64) {
+                Ok(p) => p,
                 Err(e) => {
                     println!("Error in memory.grow function: {e}");
                     return -1;
                 }
+            };
+
+            let base = memory.data_ptr(&caller);
+            let ret = base.add(p as usize * PAGE_SIZE);
+            println!("base: {base:?}, ret: {ret:?}, size: {size}");
+            let remaped_ptr =
+                libc::mremap(ptr, 0, size, libc::MREMAP_FIXED | libc::MREMAP_MAYMOVE, ret);
+            if remaped_ptr == libc::MAP_FAILED {
+                println!("pku_shared_memory mremap error");
+                return -1;
+            }
+
+            let host = caller.data_mut();
+            println!("Register host in pku_link_shared_memory: region: {region}, p: {p}");
+            match host.register_host(region as u64, p as usize * PAGE_SIZE) {
+                Ok(_) => {
+                    return 0;
+                }
+                Err(str) => {
+                    println!("Error when register host in pku_link_shared_memory: {str}");
+                    return -1;
+                }
             }
         } else {
-            let region = host.create_shared_memory(size as usize).unwrap();
-            region as i32
+            println!("Shared memory region {} not found", region);
+            return -1;
         }
     }
 }
 
-fn pku_access_shared_memory(mut caller: Caller<'_, Host>, region: u32, offset: u32) -> i32 {
+fn pku_query_shared_memory(mut caller: Caller<'_, Host>, region: u32) -> i32 {
+    let host = caller.data_mut();
+    if host.get_shared_memory(region as u64).is_some() {
+        return 0; // Shared memory region exists
+    }
+    -1 // Shared memory region does not exist
+}
+
+fn pku_read_shared_memory_i32(mut caller: Caller<'_, Host>, region: u32, offset: u32) -> i32 {
+    let memory = caller.get_export("memory").unwrap().into_memory().unwrap();
+    let host = caller.data_mut();
+    let base = host.get_host_base(region as u64);
+    if base.is_none() {
+        println!("Read memory region {} error!", region);
+        return -1;
+    }
+    let base = base.unwrap();
+    let target_addr = base + offset as usize;
+    println!("Read memory region: {region}, base:{base}, offset: {offset}");
+    if target_addr + std::mem::size_of::<i32>() > memory.data_size(&caller) {
+        return -2;
+    }
+    unsafe {
+        let host_base_ptr = memory.data_ptr(&caller);
+        let target_ptr = host_base_ptr.add(target_addr) as *mut i32;
+        println!("target_ptr: {target_ptr:?}, target_addr: {target_addr:?}");
+        return std::ptr::read(target_ptr);
+    }
+}
+
+fn pku_read_shared_memory_u32(mut caller: Caller<'_, Host>, region: u32, offset: u32) -> u32 {
+    let memory = caller.get_export("memory").unwrap().into_memory().unwrap();
+    let host = caller.data_mut();
+    let base = host.get_host_base(region as u64);
+    if base.is_none() {
+        println!("Read memory region {} error!", region);
+        return 0;
+    }
+    let base = base.unwrap();
+    let target_addr = base + offset as usize;
+    println!("Read memory region: {region}, base:{base}, offset: {offset}");
+    if target_addr + std::mem::size_of::<i32>() > memory.data_size(&caller) {
+        return 0;
+    }
+    unsafe {
+        let host_base_ptr = memory.data_ptr(&caller);
+        let target_ptr = host_base_ptr.add(target_addr) as *mut u32;
+        println!("target_ptr: {target_ptr:?}, target_addr: {target_addr:?}");
+        return std::ptr::read(target_ptr);
+    }
+}
+
+fn pku_write_shared_memory_i32(
+    mut caller: Caller<'_, Host>,
+    region: u32,
+    offset: u32,
+    value: i32,
+) -> i32 {
+    let memory = caller.get_export("memory").unwrap().into_memory().unwrap();
+    let host = caller.data_mut();
+    let base = host.get_host_base(region as u64);
+    if base.is_none() {
+        println!("Read memory region {} error!", region);
+        return -1;
+    }
+    let base = base.unwrap();
+    let target_addr = base + offset as usize;
+    if target_addr + std::mem::size_of::<i32>() > memory.data_size(&caller) {
+        return -2;
+    }
+    unsafe {
+        let host_base_ptr = memory.data_ptr(&caller);
+        let target_ptr = host_base_ptr.add(target_addr) as *mut i32;
+        println!("target_ptr: {target_ptr:?}, target_addr: {target_addr:?}");
+        std::ptr::write(target_ptr, value);
+        return 0;
+    }
+}
+
+fn pku_write_shared_memory_u32(
+    mut caller: Caller<'_, Host>,
+    region: u32,
+    offset: u32,
+    value: u32,
+) -> i32 {
+    let memory = caller.get_export("memory").unwrap().into_memory().unwrap();
+    let host = caller.data_mut();
+    let base = host.get_host_base(region as u64);
+    if base.is_none() {
+        println!("Read memory region {} error!", region);
+        return -1;
+    }
+    let base = base.unwrap();
+    let target_addr = base + offset as usize;
+    if target_addr + std::mem::size_of::<i32>() > memory.data_size(&caller) {
+        return -2;
+    }
+    unsafe {
+        let host_base_ptr = memory.data_ptr(&caller);
+        let target_ptr = host_base_ptr.add(target_addr) as *mut u32;
+        println!("target_ptr: {target_ptr:?}, target_addr: {target_addr:?}");
+        std::ptr::write(target_ptr, value);
+        return 0;
+    }
+}
+
+fn pku_read_shared_memory_buffer(
+    mut caller: Caller<'_, Host>,
+    region: u32,
+    offset: u32,
+    buffer_pointer: u32,
+    length: u32,
+) -> i32 {
+    let memory = caller.get_export("memory").unwrap().into_memory().unwrap();
+    let host = caller.data_mut();
+    let base = match host.get_host_base(region as u64) {
+        Some(base) => base,
+        None => {
+            println!("Read memory region {} error!", region);
+            return -1;
+        }
+    };
+
+    let dest_addr = buffer_pointer as usize;
+    if dest_addr + length as usize > memory.data_size(&caller) {
+        println!(
+            "Read memory region {} error: destination out of bounds",
+            region
+        );
+        return -2;
+    }
+    let source_addr = base + offset as usize;
+    if source_addr + length as usize > memory.data_size(&caller) {
+        println!("Read memory region {} error: source out of bounds", region);
+        return -3;
+    }
+    println!(
+        "Read buffer from memory region: {region}, base:{base}, offset: {offset}, length: {length}, source_addr: {source_addr}, dest_addr: {dest_addr}"
+    );
+
+    let mem_slice = memory.data_mut(&mut caller);
+    mem_slice.copy_within(source_addr..source_addr + length as usize, dest_addr);
     0
+}
+
+fn pku_write_shared_memory_buffer(
+    mut caller: Caller<'_, Host>,
+    region: u32,
+    offset: u32,
+    buffer_pointer: u32,
+    length: u32,
+) -> i32 {
+    let memory = caller.get_export("memory").unwrap().into_memory().unwrap();
+    let host = caller.data_mut();
+    let base = match host.get_host_base(region as u64) {
+        Some(base) => base,
+        None => {
+            println!("Read memory region {} error!", region);
+            return -1;
+        }
+    };
+
+    let dest_addr = base + offset as usize;
+    if dest_addr + length as usize > memory.data_size(&caller) {
+        println!(
+            "Write memory region {} error: destination out of bounds",
+            region
+        );
+        return -2;
+    }
+    let source_addr = buffer_pointer as usize;
+    if source_addr + length as usize > memory.data_size(&caller) {
+        println!("Write memory region {} error: source out of bounds", region);
+        return -3;
+    }
+    println!(
+        "Write buffer to memory region: {region}, base:{base}, offset: {offset}, length: {length}, source_addr: {source_addr}, dest_addr: {dest_addr}"
+    );
+
+    let mem_slice = memory.data_mut(&mut caller);
+    let source_slice = &mem_slice[source_addr..source_addr + length as usize].to_vec();
+    let dest_slice = &mut mem_slice[dest_addr..dest_addr + length as usize];
+    dest_slice.copy_from_slice(source_slice);
+    0
+}
+
+fn pku_release_shared_memory(mut caller: Caller<'_, Host>, region: u32) -> i32 {
+    let host = caller.data_mut();
+    let result = host.release_shared_memory(region as u64);
+    match result {
+        Ok(_) => 0,
+        Err(str) => {
+            println!("pku_release_shared_memory error: {str}");
+            -1
+        }
+    }
 }
 
 /// Define env function
@@ -521,5 +734,52 @@ pub(crate) fn define_native_function(linker: &mut Linker<Host>) {
         .unwrap();
     linker
         .func_wrap("env", "PKUCreateSharedMemory", pku_create_shareded_memory)
+        .unwrap();
+    linker
+        .func_wrap("env", "PKULinkSharedMemory", pku_link_shared_memrory)
+        .unwrap();
+    linker
+        .func_wrap("env", "PKUQuerySharedMemory", pku_query_shared_memory)
+        .unwrap();
+    linker
+        .func_wrap("env", "PKUReadSharedMemoryInt", pku_read_shared_memory_i32)
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "PKUWriteSharedMemoryInt",
+            pku_write_shared_memory_i32,
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "PKUReadSharedMemoryUnsignedInt",
+            pku_read_shared_memory_u32,
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "PKUWriteSharedMemoryUnsignedInt",
+            pku_write_shared_memory_u32,
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "PKUReadSharedMemoryBuffer",
+            pku_read_shared_memory_buffer,
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "PKUWriteSharedMemoryBuffer",
+            pku_write_shared_memory_buffer,
+        )
+        .unwrap();
+    linker
+        .func_wrap("env", "PKUReleaseSharedMemory", pku_release_shared_memory)
         .unwrap();
 }

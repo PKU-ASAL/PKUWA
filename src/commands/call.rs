@@ -163,7 +163,7 @@ impl CallCommand {
                 bail!("the coredump-on-trap path does not support patterns yet.")
             }
         }
-
+        let shared_memory_regions = Some(Arc::new(RwLock::new(SharedMemoryManager::new())));
         let handles: Vec<_> = run_targets
             .into_iter()
             .enumerate()
@@ -172,6 +172,24 @@ impl CallCommand {
                 let engine = engine.clone();
 
                 let range = splited_args[index].clone();
+
+                let host = Host {
+                    module_id: index as u32,
+                    shared_memory_manager: shared_memory_regions.clone(),
+                    #[cfg(feature = "wasi-http")]
+                    wasi_http_outgoing_body_buffer_chunks: self_clone
+                        .run
+                        .common
+                        .wasi
+                        .http_outgoing_body_buffer_chunks,
+                    #[cfg(feature = "wasi-http")]
+                    wasi_http_outgoing_body_chunk_size: self_clone
+                        .run
+                        .common
+                        .wasi
+                        .http_outgoing_body_chunk_size,
+                    ..Default::default()
+                };
 
                 thread::spawn(move || {
                     let mut linker = match &target {
@@ -192,22 +210,6 @@ impl CallCommand {
                             }
                         }
                     }
-
-                    let host = Host {
-                        #[cfg(feature = "wasi-http")]
-                        wasi_http_outgoing_body_buffer_chunks: self_clone
-                            .run
-                            .common
-                            .wasi
-                            .http_outgoing_body_buffer_chunks,
-                        #[cfg(feature = "wasi-http")]
-                        wasi_http_outgoing_body_chunk_size: self_clone
-                            .run
-                            .common
-                            .wasi
-                            .http_outgoing_body_chunk_size,
-                        ..Default::default()
-                    };
 
                     match &mut linker {
                         CliLinker::Core(l) => {
@@ -1326,6 +1328,7 @@ pub(crate) struct Host {
     // access.
     preview2_ctx: Option<Arc<Mutex<wasmtime_wasi::preview1::WasiP1Ctx>>>,
 
+    module_id: u32,
     shared_memory_manager: Option<Arc<RwLock<SharedMemoryManager>>>,
 
     #[cfg(feature = "wasi-nn")]
@@ -1448,9 +1451,9 @@ fn write_core_dump(
 
 #[derive(Default, Debug, Clone)]
 struct SharedMemoryRegion {
-    id: u64,
     ptr: usize,
     size: usize,
+    base_table: HashMap<u32, usize>,
 }
 
 #[derive(Default, Debug)]
@@ -1472,7 +1475,7 @@ impl SharedMemoryManager {
     // Return the region id of the created shared memory region
     fn create_region(&mut self, size: usize) -> Result<u64, String> {
         const PAGE_SIZE: usize = 4096;
-        let aligned_size = (size + PAGE_SIZE - 1) & !(PAGE_SIZE - 1);
+        let aligned_size = (size * PAGE_SIZE + PAGE_SIZE - 1) & !(PAGE_SIZE - 1);
 
         unsafe {
             let ptr = libc::mmap(
@@ -1491,9 +1494,9 @@ impl SharedMemoryManager {
             self.region_nums += 1;
 
             let region = SharedMemoryRegion {
-                id: region_id,
                 ptr: ptr as usize,
                 size: aligned_size,
+                base_table: HashMap::new(),
             };
 
             self.regions.insert(region_id, region);
@@ -1506,6 +1509,26 @@ impl SharedMemoryManager {
     fn get_region(&mut self, region_id: u64) -> Option<*mut c_void> {
         if let Some(region) = self.regions.get_mut(&region_id) {
             Some(region.ptr as *mut c_void)
+        } else {
+            None
+        }
+    }
+
+    fn register_host(&mut self, region_id: u64, host_id: u32, base: usize) -> Result<(), String> {
+        if let Some(region) = self.regions.get_mut(&region_id) {
+            region.base_table.insert(host_id, base);
+            Ok(())
+        } else {
+            Err(format!(
+                "Region {} not found when registering host {}!",
+                region_id, host_id
+            ))
+        }
+    }
+
+    fn get_host_base(&self, region_id: u64, host_id: u32) -> Option<usize> {
+        if let Some(region) = self.regions.get(&region_id) {
+            region.base_table.get(&host_id).cloned()
         } else {
             None
         }
@@ -1526,6 +1549,10 @@ impl SharedMemoryManager {
 }
 
 impl Host {
+    pub fn get_host_id(&self) -> u32 {
+        self.module_id
+    }
+
     pub fn create_shared_memory(&mut self, size: usize) -> Result<u64, String> {
         if let None = self.shared_memory_manager {
             self.shared_memory_manager = Some(Arc::new(RwLock::new(SharedMemoryManager::new())));
@@ -1542,7 +1569,7 @@ impl Host {
 
     pub fn get_shared_memory(&mut self, region: u64) -> Option<*mut c_void> {
         if let None = self.shared_memory_manager {
-            self.shared_memory_manager = Some(Arc::new(RwLock::new(SharedMemoryManager::new())));
+            println!("Shared memory manager is not exist");
             return None;
         }
         let mut manager = self
@@ -1556,7 +1583,7 @@ impl Host {
 
     pub fn release_shared_memory(&mut self, region: u64) -> Result<(), String> {
         if let None = self.shared_memory_manager {
-            self.shared_memory_manager = Some(Arc::new(RwLock::new(SharedMemoryManager::new())));
+            return Err("Shared memory manager is not exist".to_string());
         }
         let mut manager = self
             .shared_memory_manager
@@ -1565,5 +1592,42 @@ impl Host {
             .write()
             .unwrap();
         manager.release_region(region)
+    }
+
+    pub fn register_host(&mut self, region: u64, base: usize) -> Result<(), String> {
+        if let None = self.shared_memory_manager {
+            return Err("Shared memory manager is not exist".to_string());
+        }
+        let mut manager = self
+            .shared_memory_manager
+            .as_ref()
+            .unwrap()
+            .write()
+            .unwrap();
+        manager.register_host(region, self.get_host_id(), base)
+    }
+
+    pub fn get_host_base(&mut self, region: u64) -> Option<usize> {
+        if let None = self.shared_memory_manager {
+            println!("Shared memory manager is not exist");
+            return None;
+        }
+        let manager = self
+            .shared_memory_manager
+            .as_ref()
+            .unwrap()
+            .write()
+            .unwrap();
+        manager.get_host_base(region, self.module_id)
+    }
+
+    pub fn get_shared_memory_region_size(&mut self, region: u64) -> Option<usize> {
+        if let Some(manager) = &self.shared_memory_manager {
+            let manager = manager.read().unwrap();
+            if let Some(region) = manager.regions.get(&region) {
+                return Some(region.size);
+            }
+        }
+        None
     }
 }
