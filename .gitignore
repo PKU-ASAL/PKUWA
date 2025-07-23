@@ -37,5 +37,5 @@ perf.data*
 libpku/
 musl/
 musl-src/
-./*.o
-./*.wasm
+*.o
+*.wasm
