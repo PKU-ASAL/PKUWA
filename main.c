@@ -147,7 +147,7 @@ int main(void)
     int *p2 = malloc((PAGE_SIZE) * sizeof(int));
     for (int i = 0; i < PAGE_SIZE / sizeof(int); i++)
     {
-        p2[i] = i + 1;
+        p2[i] = 114514;
     }
     __imported_wasi_snapshot_preview1_PKUWriteSharedMemoryBuffer(0, PAGE_SIZE, (unsigned int)p2, PAGE_SIZE);
     free(p2);

@@ -39,3 +39,4 @@ musl/
 musl-src/
 *.o
 *.wasm
+cmd
