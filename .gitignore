@@ -33,3 +33,11 @@ testcase*.wasm
 testcase*.dna
 testcase*.json
 perf.data*
+
+libpku/
+musl/
+musl-src/
+*.o
+*.wasm
+cmd
+Cargo.lock
