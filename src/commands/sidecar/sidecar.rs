@@ -1,5 +1,6 @@
 use crate::commands::call::Host;
 use crate::commands::sidecar::native::define_native_function;
+use crate::commands::sidecar::wali::define_wali_function;
 use wasmtime::Linker;
 
 use clap::ValueEnum;
@@ -86,4 +87,5 @@ pub(crate) fn define_sidecar_function(linker: &mut Linker<Host>) {
         .func_wrap("env", "PKUNodeExporter", pku_node_exporter)
         .unwrap();
     define_native_function(linker);
+    define_wali_function(linker);
 }

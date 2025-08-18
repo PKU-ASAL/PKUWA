@@ -9,5 +9,7 @@ mod proc_meminfo;
 mod proc_netdev;
 mod proc_stat;
 mod native;
+mod wali;
+mod companion;
 
 pub(crate) use sidecar::*;

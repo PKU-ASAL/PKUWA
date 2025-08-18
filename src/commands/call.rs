@@ -703,7 +703,18 @@ impl CallCommand {
                         "failed to instantiate {:?}",
                         self.module_and_args[0]
                     ))?;
-
+                // let instance = linker
+                //     .instantiate_async(&mut *store, &module)
+                //     .await;
+                // let instance = match instance {
+                //     Ok(instance) => instance,
+                //     Err(e) => {
+                //         // If the error is a `wasmtime::Trap`, then we want to
+                //         // print the error and exit with a non-zero exit code.
+                //         println!("Error: {e:?}");
+                //         return Err(e.into());
+                //     }
+                // };
                 // If `_initialize` is present, meaning a reactor, then invoke
                 // the function.
                 if let Some(func) = instance.get_func(&mut *store, "_initialize") {
@@ -1164,32 +1175,46 @@ impl CallCommand {
             }
         }
 
-        if self.run.common.wasi.threads == Some(true) {
-            #[cfg(not(feature = "wasi-threads"))]
-            {
-                // Silence the unused warning for `module` as it is only used in the
-                // conditionally-compiled wasi-threads.
-                let _ = &module;
+        // if self.run.common.wasi.threads == Some(true) {
+        //     #[cfg(not(feature = "wasi-threads"))]
+        //     {
+        //         // Silence the unused warning for `module` as it is only used in the
+        //         // conditionally-compiled wasi-threads.
+        //         let _ = &module;
 
-                bail!(
-                    "Cannot enable wasi-threads when the binary is not compiled with this feature."
-                );
-            }
-            #[cfg(feature = "wasi-threads")]
-            {
-                let linker = match linker {
-                    CliLinker::Core(linker) => linker,
-                    _ => bail!("wasi-threads does not support components yet"),
-                };
-                let module = module.unwrap_core();
-                wasmtime_wasi_threads::add_to_linker(linker, store, &module, |host| {
-                    host.wasi_threads.as_ref().unwrap()
-                })?;
-                store.data_mut().wasi_threads = Some(Arc::new(WasiThreadsCtx::new(
-                    module.clone(),
-                    Arc::new(linker.clone()),
-                )?));
-            }
+        //         bail!(
+        //             "Cannot enable wasi-threads when the binary is not compiled with this feature."
+        //         );
+        //     }
+        //     #[cfg(feature = "wasi-threads")]
+        //     {
+        //         let linker = match linker {
+        //             CliLinker::Core(linker) => linker,
+        //             _ => bail!("wasi-threads does not support components yet"),
+        //         };
+        //         let module = module.unwrap_core();
+        //         wasmtime_wasi_threads::add_to_linker(linker, store, &module, |host| {
+        //             host.wasi_threads.as_ref().unwrap()
+        //         })?;
+        //         store.data_mut().wasi_threads = Some(Arc::new(WasiThreadsCtx::new(
+        //             module.clone(),
+        //             Arc::new(linker.clone()),
+        //         )?));
+        //     }
+        // }
+        {
+            let linker = match linker {
+                CliLinker::Core(linker) => linker,
+                _ => bail!("wasi-threads does not support components yet"),
+            };
+            let module = module.unwrap_core();
+            wasmtime_wasi_threads::add_to_linker(linker, store, &module, |host| {
+                host.wasi_threads.as_ref().unwrap()
+            })?;
+            store.data_mut().wasi_threads = Some(Arc::new(WasiThreadsCtx::new(
+                module.clone(),
+                Arc::new(linker.clone()),
+            )?));
         }
 
         if self.run.common.wasi.http == Some(true) {
@@ -1387,6 +1412,11 @@ impl wasmtime_wasi_http::types::WasiHttpView for Host {
         self.wasi_http_outgoing_body_chunk_size
             .unwrap_or_else(|| DEFAULT_OUTGOING_BODY_CHUNK_SIZE)
     }
+}
+
+/// For wali threads, this is the context that is used to manage
+pub(crate) fn lhw_get_cx(host: &Host) -> &WasiThreadsCtx<Host> {
+    host.wasi_threads.as_ref().unwrap()
 }
 
 #[cfg(not(unix))]

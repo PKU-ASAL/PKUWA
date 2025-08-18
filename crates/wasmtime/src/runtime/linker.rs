@@ -1327,7 +1327,10 @@ impl<T> Linker<T> {
     fn _get_by_import(&self, import: &ImportType) -> Result<Definition, UnknownImportError> {
         match self._get(import.module(), import.name()) {
             Some(item) => Ok(item.clone()),
-            None => Err(UnknownImportError::new(import)),
+            None => {
+                println!("Unknown import: {}::{}", import.module(), import.name());
+                Err(UnknownImportError::new(import))
+            },
         }
     }
 

@@ -416,22 +416,31 @@ fn pku_sharded_memory(mut caller: Caller<'_, Host>) -> i32 {
             if SHARED_MEMORY == libc::MAP_FAILED {
                 println!("pku_sharded_memory mmap error");
                 return -1;
-            } else {
+            }
+        }
+        let page = memory.grow(&mut caller, 1);
+        match page {
+            Ok(p) => {
+                let base = memory.data_ptr(&caller);
+                let ret = base.add(p as usize * 16 * PAGE_SIZE);
+                let new_ptr = libc::mremap(
+                    SHARED_MEMORY,
+                    0,
+                    PAGE_SIZE,
+                    libc::MREMAP_FIXED | libc::MREMAP_MAYMOVE,
+                    ret,
+                );
+                if new_ptr == libc::MAP_FAILED {
+                    println!("pku_sharded_memory mremap error");
+                    return -1;
+                } else {
+                    // libc::mprotect(new_ptr, PAGE_SIZE, libc::PROT_READ);
+                }
                 return 0;
             }
-        } else {
-            let page = memory.grow(&mut caller, 1);
-            match page {
-                Ok(p) => {
-                    let base = memory.data_ptr(&caller);
-                    let ret = base.add(p as usize * PAGE_SIZE);
-                    libc::mremap(SHARED_MEMORY, 0, PAGE_SIZE, libc::MREMAP_FIXED | libc::MREMAP_MAYMOVE, ret);
-                    return 0;
-                }
-                Err(e) => {
-                    println!("Error in memory.grow function: {e}");
-                    return -1;
-                }
+            Err(e) => {
+                println!("Error in memory.grow function: {e}");
+                return -1;
             }
         }
     }
@@ -470,5 +479,7 @@ pub(crate) fn define_native_function(linker: &mut Linker<Host>) {
         .unwrap();
     linker.func_wrap("env", "PKURecv", pku_recv).unwrap();
     linker.func_wrap("env", "PKUSidecar", pku_sidecar).unwrap();
-    linker.func_wrap("env", "PKUShardedMemory", pku_sharded_memory).unwrap();
+    linker
+        .func_wrap("env", "PKUShardedMemory", pku_sharded_memory)
+        .unwrap();
 }

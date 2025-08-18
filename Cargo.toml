@@ -93,11 +93,13 @@ quick-xml = { workspace = true }
 hidapi = { workspace = true }
 regex = { workspace = true }
 tracing-subscriber = { workspace = true }
-tracing-opentelemetry = { workspace = true }
 libc = { workspace = true }
 bitflags = { workspace = true }
 once_cell = { workspace = true }
 event-listener = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-appender-tracing = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]
 rustix = { workspace = true, features = ["mm", "process"] }
@@ -396,9 +398,11 @@ lazy_static = "1.5.0"
 quick-xml = { version = "0.37.0", features = ["serialize"] }
 hidapi = "2.6.3"
 regex = "1"
-tracing-opentelemetry = "0.31"
 once_cell = { version = "1.12.0" }
 event-listener = { version = "5.4.0" }
+opentelemetry = { version = "0.30" }
+opentelemetry_sdk = { version = "0.30" }
+opentelemetry-appender-tracing = { version = "0.30" }
 
 # =============================================================================
 #

@@ -168,128 +168,419 @@
 //     }
 // }
 
-use std::collections::BTreeMap;
-use tracing::{debug_span, info, info_span};
-use tracing_subscriber::Layer;
-use tracing_subscriber::prelude::*;
+// use std::collections::BTreeMap;
+// use tracing::{debug_span, info, info_span};
+// use tracing_subscriber::Layer;
+// use tracing_subscriber::prelude::*;
 
-pub struct CustomLayer;
+// pub struct CustomLayer;
 
-impl<S> Layer<S> for CustomLayer
-where
-    S: tracing::Subscriber,
-    S: for<'lookup> tracing_subscriber::registry::LookupSpan<'lookup>,
-{
-    fn on_new_span(
-        &self,
-        attrs: &tracing::span::Attributes<'_>,
-        id: &tracing::span::Id,
-        ctx: tracing_subscriber::layer::Context<'_, S>,
-    ) {
-        let span = ctx.span(id).unwrap();
-        let mut fields = BTreeMap::new();
-        let mut visitor = JsonVisitor(&mut fields);
-        attrs.record(&mut visitor);
-        let storage = CustomFieldStorage(fields);
-        let mut extensions = span.extensions_mut();
-        extensions.insert(storage);
-    }
+// impl<S> Layer<S> for CustomLayer
+// where
+//     S: tracing::Subscriber,
+//     S: for<'lookup> tracing_subscriber::registry::LookupSpan<'lookup>,
+// {
+//     fn on_new_span(
+//         &self,
+//         attrs: &tracing::span::Attributes<'_>,
+//         id: &tracing::span::Id,
+//         ctx: tracing_subscriber::layer::Context<'_, S>,
+//     ) {
+//         let span = ctx.span(id).unwrap();
+//         let mut fields = BTreeMap::new();
+//         let mut visitor = JsonVisitor(&mut fields);
+//         attrs.record(&mut visitor);
+//         let storage = CustomFieldStorage(fields);
+//         let mut extensions = span.extensions_mut();
+//         extensions.insert(storage);
+//     }
 
-    fn on_event(&self, event: &tracing::Event<'_>, ctx: tracing_subscriber::layer::Context<'_, S>) {
-        // All of the span context
-        let scope = ctx.event_scope(event).unwrap();
-        let mut spans = vec![];
-        for span in scope.from_root() {
-            let extensions = span.extensions();
-            let storage = extensions.get::<CustomFieldStorage>().unwrap();
-            let field_data: &BTreeMap<String, serde_json::Value> = &storage.0;
-            spans.push(serde_json::json!({
-                "target": span.metadata().target(),
-                "name": span.name(),
-                "level": format!("{:?}", span.metadata().level()),
-                "fields": field_data,
-            }));
+//     fn on_event(&self, event: &tracing::Event<'_>, ctx: tracing_subscriber::layer::Context<'_, S>) {
+//         // All of the span context
+//         let scope = ctx.event_scope(event).unwrap();
+//         let mut spans = vec![];
+//         for span in scope.from_root() {
+//             let extensions = span.extensions();
+//             let storage = extensions.get::<CustomFieldStorage>().unwrap();
+//             let field_data: &BTreeMap<String, serde_json::Value> = &storage.0;
+//             spans.push(serde_json::json!({
+//                 "target": span.metadata().target(),
+//                 "name": span.name(),
+//                 "level": format!("{:?}", span.metadata().level()),
+//                 "fields": field_data,
+//             }));
+//         }
+
+//         // The fields of the event
+//         let mut fields = BTreeMap::new();
+//         let mut visitor = JsonVisitor(&mut fields);
+//         event.record(&mut visitor);
+
+//         // And create our output
+//         let output = serde_json::json!({
+//             "target": event.metadata().target(),
+//             "name": event.metadata().name(),
+//             "level": format!("{:?}", event.metadata().level()),
+//             "fields": fields,
+//             "spans": spans,
+//         });
+//         println!("{}", serde_json::to_string_pretty(&output).unwrap());
+//     }
+// }
+
+// struct JsonVisitor<'a>(&'a mut BTreeMap<String, serde_json::Value>);
+
+// impl<'a> tracing::field::Visit for JsonVisitor<'a> {
+//     fn record_f64(&mut self, field: &tracing::field::Field, value: f64) {
+//         self.0
+//             .insert(field.name().to_string(), serde_json::json!(value));
+//     }
+
+//     fn record_i64(&mut self, field: &tracing::field::Field, value: i64) {
+//         self.0
+//             .insert(field.name().to_string(), serde_json::json!(value));
+//     }
+
+//     fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
+//         self.0
+//             .insert(field.name().to_string(), serde_json::json!(value));
+//     }
+
+//     fn record_bool(&mut self, field: &tracing::field::Field, value: bool) {
+//         self.0
+//             .insert(field.name().to_string(), serde_json::json!(value));
+//     }
+
+//     fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+//         self.0
+//             .insert(field.name().to_string(), serde_json::json!(value));
+//     }
+
+//     fn record_error(
+//         &mut self,
+//         field: &tracing::field::Field,
+//         value: &(dyn std::error::Error + 'static),
+//     ) {
+//         self.0.insert(
+//             field.name().to_string(),
+//             serde_json::json!(value.to_string()),
+//         );
+//     }
+
+//     fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+//         self.0.insert(
+//             field.name().to_string(),
+//             serde_json::json!(format!("{:?}", value)),
+//         );
+//     }
+// }
+
+// #[derive(Debug)]
+// struct CustomFieldStorage(BTreeMap<String, serde_json::Value>);
+
+// pub fn get_trace() {
+//     let subscriber = tracing_subscriber::registry()
+//         .with(tracing_subscriber::EnvFilter::new("info"))
+//         .with(CustomLayer);
+
+//     tracing::subscriber::with_default(subscriber, || {
+//         let outer_span = info_span!("outer", level = 0);
+//         let _outer_entered = outer_span.enter();
+
+//         let inner_span = debug_span!("inner", level = 1);
+//         let _inner_entered = inner_span.enter();
+
+//         info!(a_bool = true, answer = 42, message = "first example");
+//     });
+// }
+
+use once_cell::sync::Lazy;
+use opentelemetry::{KeyValue, global};
+
+use opentelemetry::trace::Tracer;
+
+use opentelemetry_sdk::metrics::{Instrument, SdkMeterProvider, Stream, Temporality};
+
+use opentelemetry_sdk::Resource;
+use opentelemetry_sdk::trace::SdkTracerProvider;
+
+use crate::commands::sidecar::companion;
+
+static RESOURCE: Lazy<Resource> = Lazy::new(|| {
+    Resource::builder()
+        .with_service_name("basic-stdout-example")
+        .build()
+});
+
+fn init_trace() -> SdkTracerProvider {
+    let exporter = companion::SpanExporter::default();
+    let provider = SdkTracerProvider::builder()
+        .with_simple_exporter(exporter)
+        .with_resource(RESOURCE.clone())
+        .build();
+    global::set_tracer_provider(provider.clone());
+    provider
+}
+
+fn init_metrics() -> opentelemetry_sdk::metrics::SdkMeterProvider {
+    let exporter = companion::MetricExporter::default();
+    let provider = SdkMeterProvider::builder()
+        .with_periodic_exporter(exporter)
+        .with_resource(RESOURCE.clone())
+        .build();
+    global::set_meter_provider(provider.clone());
+    provider
+}
+
+fn init_logs() -> opentelemetry_sdk::logs::SdkLoggerProvider {
+    use opentelemetry_appender_tracing::layer;
+    use opentelemetry_sdk::logs::SdkLoggerProvider;
+    use tracing_subscriber::prelude::*;
+
+    let exporter = companion::LogExporter::default();
+    let provider: SdkLoggerProvider = SdkLoggerProvider::builder()
+        .with_simple_exporter(exporter)
+        .with_resource(RESOURCE.clone())
+        .build();
+    let layer = layer::OpenTelemetryTracingBridge::new(&provider);
+    tracing_subscriber::registry().with(layer);
+    provider
+}
+
+fn emit_span() {
+    use opentelemetry::{InstrumentationScope, trace::TraceContextExt};
+
+    let scope = InstrumentationScope::builder("stdout-example")
+        .with_version("v1")
+        .with_attributes([KeyValue::new("scope_key", "scope_value")])
+        .build();
+
+    let tracer = global::tracer_with_scope(scope);
+    tracer.in_span("example-span", |cx| {
+        let span = cx.span();
+        span.set_attribute(KeyValue::new("my-attribute", "my-value"));
+        span.add_event(
+            "example-event-name",
+            vec![KeyValue::new("event_attribute1", "event_value1")],
+        );
+        // emit_log();
+    })
+}
+
+fn emit_metrics() {
+    let meter = global::meter("stdout-example");
+    let c = meter.u64_counter("example_counter").build();
+    c.add(
+        1,
+        &[
+            KeyValue::new("name", "apple"),
+            KeyValue::new("color", "green"),
+        ],
+    );
+    c.add(
+        1,
+        &[
+            KeyValue::new("name", "apple"),
+            KeyValue::new("color", "green"),
+        ],
+    );
+    c.add(
+        2,
+        &[
+            KeyValue::new("name", "apple"),
+            KeyValue::new("color", "red"),
+        ],
+    );
+    c.add(
+        1,
+        &[
+            KeyValue::new("name", "banana"),
+            KeyValue::new("color", "yellow"),
+        ],
+    );
+    c.add(
+        11,
+        &[
+            KeyValue::new("name", "banana"),
+            KeyValue::new("color", "yellow"),
+        ],
+    );
+
+    let h = meter.f64_histogram("example_histogram").build();
+    h.record(
+        1.0,
+        &[
+            KeyValue::new("name", "apple"),
+            KeyValue::new("color", "green"),
+        ],
+    );
+    h.record(
+        1.0,
+        &[
+            KeyValue::new("name", "apple"),
+            KeyValue::new("color", "green"),
+        ],
+    );
+    h.record(
+        2.0,
+        &[
+            KeyValue::new("name", "apple"),
+            KeyValue::new("color", "red"),
+        ],
+    );
+    h.record(
+        1.0,
+        &[
+            KeyValue::new("name", "banana"),
+            KeyValue::new("color", "yellow"),
+        ],
+    );
+    h.record(
+        11.0,
+        &[
+            KeyValue::new("name", "banana"),
+            KeyValue::new("color", "yellow"),
+        ],
+    );
+}
+
+fn emit_log() {
+    use tracing::error;
+    error!(name: "my-event-name", target: "my-system", event_id = 20, user_name = "otel", user_email = "otel@opentelemetry.io");
+}
+
+fn init_meter_provider() -> opentelemetry_sdk::metrics::SdkMeterProvider {
+    // for example 1
+    let my_view_rename_and_unit = |i: &Instrument| {
+        if i.name() == "my_histogram" {
+            Some(
+                Stream::builder()
+                    .with_name("my_histogram_renamed")
+                    .with_unit("milliseconds")
+                    .build()
+                    .unwrap(),
+            )
+        } else {
+            None
         }
+    };
 
-        // The fields of the event
-        let mut fields = BTreeMap::new();
-        let mut visitor = JsonVisitor(&mut fields);
-        event.record(&mut visitor);
+    // for example 2
+    let my_view_change_cardinality = |i: &Instrument| {
+        if i.name() == "my_second_histogram" {
+            // Note: If Stream is invalid, build() will return an error. By
+            // calling `.ok()`, any such error is ignored and treated as if the
+            // view does not match the instrument. If this is not the desired
+            // behavior, consider handling the error explicitly.
+            Stream::builder().with_cardinality_limit(2).build().ok()
+        } else {
+            None
+        }
+    };
 
-        // And create our output
-        let output = serde_json::json!({
-            "target": event.metadata().target(),
-            "name": event.metadata().name(),
-            "level": format!("{:?}", event.metadata().level()),
-            "fields": fields,
-            "spans": spans,
-        });
-        println!("{}", serde_json::to_string_pretty(&output).unwrap());
-    }
+    // Build exporter using Delta Temporality.
+    let exporter = companion::MetricExporterBuilder::default()
+        .with_temporality(Temporality::Delta)
+        .build();
+
+    let resource = Resource::builder()
+        .with_service_name("metrics-advanced-example")
+        .build();
+
+    let provider = SdkMeterProvider::builder()
+        .with_periodic_exporter(exporter)
+        .with_resource(resource)
+        .with_view(my_view_rename_and_unit)
+        .with_view(my_view_change_cardinality)
+        .build();
+    global::set_meter_provider(provider.clone());
+    provider
 }
 
-struct JsonVisitor<'a>(&'a mut BTreeMap<String, serde_json::Value>);
+fn metrics_advanced_example() {
+    let meter_provider = init_meter_provider();
+    let meter = global::meter("mylibraryname");
 
-impl<'a> tracing::field::Visit for JsonVisitor<'a> {
-    fn record_f64(&mut self, field: &tracing::field::Field, value: f64) {
-        self.0
-            .insert(field.name().to_string(), serde_json::json!(value));
-    }
+    // Example 1 - Rename metric using View.
+    // This instrument will be renamed to "my_histogram_renamed",
+    // and its unit changed to "milliseconds"
+    // using view.
+    let histogram = meter
+        .f64_histogram("my_histogram")
+        .with_unit("ms")
+        .with_description("My histogram example description")
+        .build();
 
-    fn record_i64(&mut self, field: &tracing::field::Field, value: i64) {
-        self.0
-            .insert(field.name().to_string(), serde_json::json!(value));
-    }
+    // Record measurements using the histogram instrument.
+    histogram.record(
+        10.5,
+        &[
+            KeyValue::new("mykey1", "myvalue1"),
+            KeyValue::new("mykey2", "myvalue2"),
+            KeyValue::new("mykey3", "myvalue3"),
+            KeyValue::new("mykey4", "myvalue4"),
+        ],
+    );
 
-    fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
-        self.0
-            .insert(field.name().to_string(), serde_json::json!(value));
-    }
+    // Example 2 - Change cardinality using View.
+    let histogram2 = meter
+        .f64_histogram("my_second_histogram")
+        .with_unit("ms")
+        .with_description("My histogram example description")
+        .build();
 
-    fn record_bool(&mut self, field: &tracing::field::Field, value: bool) {
-        self.0
-            .insert(field.name().to_string(), serde_json::json!(value));
-    }
+    // Record measurements using the histogram instrument. This metric will have
+    // a cardinality limit of 2, as set in the view. Because of this, only the
+    // first two distinct attribute combinations will be recorded, and the rest
+    // will be folded into the overflow attribute. Any number of measurements
+    // can be recorded as long as they use the same or already-seen attribute
+    // combinations.
+    histogram2.record(1.5, &[KeyValue::new("mykey1", "v1")]);
+    histogram2.record(1.2, &[KeyValue::new("mykey1", "v2")]);
 
-    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
-        self.0
-            .insert(field.name().to_string(), serde_json::json!(value));
-    }
+    // Repeatedly emitting measurements for "v1" and "v2" will not
+    // trigger overflow, as they are already seen attribute combinations.
+    histogram2.record(1.7, &[KeyValue::new("mykey1", "v1")]);
+    histogram2.record(1.8, &[KeyValue::new("mykey1", "v2")]);
 
-    fn record_error(
-        &mut self,
-        field: &tracing::field::Field,
-        value: &(dyn std::error::Error + 'static),
-    ) {
-        self.0.insert(
-            field.name().to_string(),
-            serde_json::json!(value.to_string()),
-        );
-    }
+    // Emitting measurements for new attribute combinations will trigger
+    // overflow, as the cardinality limit of 2 has been reached.
+    // All the below measurements will be folded into the overflow attribute.
+    histogram2.record(1.23, &[KeyValue::new("mykey1", "v3")]);
 
-    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
-        self.0.insert(
-            field.name().to_string(),
-            serde_json::json!(format!("{:?}", value)),
-        );
-    }
+    histogram2.record(1.4, &[KeyValue::new("mykey1", "v4")]);
+
+    histogram2.record(1.6, &[KeyValue::new("mykey1", "v5")]);
+
+    histogram2.record(1.7, &[KeyValue::new("mykey1", "v6")]);
+
+    histogram2.record(1.8, &[KeyValue::new("mykey1", "v7")]);
+
+    // Metrics are exported by default every 60 seconds when using stdout exporter,
+    // however shutting down the MeterProvider here instantly flushes
+    // the metrics, instead of waiting for the 60 sec interval.
+    meter_provider
+        .shutdown()
+        .expect("Failed to shutdown meter provider");
 }
-
-#[derive(Debug)]
-struct CustomFieldStorage(BTreeMap<String, serde_json::Value>);
 
 pub fn get_trace() {
-    let subscriber = tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new("info"))
-        .with(CustomLayer);
+    let tracer_provider = init_trace();
+    let meter_provider = init_metrics();
+    let logger_provider = init_logs();
 
-    tracing::subscriber::with_default(subscriber, || {
-        let outer_span = info_span!("outer", level = 0);
-        let _outer_entered = outer_span.enter();
+    emit_log();
+    emit_span();
+    emit_metrics();
+    metrics_advanced_example();
 
-        let inner_span = debug_span!("inner", level = 1);
-        let _inner_entered = inner_span.enter();
-
-        info!(a_bool = true, answer = 42, message = "first example");
-    });
+    tracer_provider
+        .shutdown()
+        .expect("Failed to shutdown tracer provider");
+    meter_provider
+        .shutdown()
+        .expect("Failed to shutdown meter provider");
+    logger_provider
+        .shutdown()
+        .expect("Failed to shutdown logger provider");
 }

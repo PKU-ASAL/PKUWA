@@ -121,7 +121,7 @@ impl<T: Clone + Send + 'static> WasiThreadsCtx<T> {
     /// Callers of `wasi_thread_spawn` expect a TID in range of 0 < TID <= 0x1FFFFFFF
     /// to indicate a successful spawning of the thread whereas a negative
     /// return value indicates an failure to spawn.
-    fn next_thread_id(&self) -> Option<i32> {
+    pub fn next_thread_id(&self) -> Option<i32> {
         match self
             .tid
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| match v {
@@ -131,6 +131,10 @@ impl<T: Clone + Send + 'static> WasiThreadsCtx<T> {
             Ok(v) => Some(v + 1),
             Err(_) => None,
         }
+    }
+
+    pub fn get_instance_pre(&self) -> Arc<InstancePre<T>> {
+        self.instance_pre.clone()
     }
 }
 
