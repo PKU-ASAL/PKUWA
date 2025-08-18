@@ -40,3 +40,4 @@ musl-src/
 *.o
 *.wasm
 cmd
+Cargo.lock
